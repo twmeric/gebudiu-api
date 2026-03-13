@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: gebudiu-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        value: sk-37a56b14534e450fbe6068c95cff4044
+    plan: free
