@@ -235,10 +235,13 @@ class TranslationService:
         cached = cache.get(text, self.domain)
         if cached:
             self.stats["cache_hits"] += 1
+            logger.info(f"Cache hit: {text[:30]}... -> {cached[:30]}...")
             return cached, True
         
         try:
             client = get_deepseek_client()
+            logger.info(f"Calling DeepSeek API for: {text[:50]}...")
+            
             response = client.chat.completions.create(
                 model="deepseek-chat",
                 messages=[
@@ -246,18 +249,19 @@ class TranslationService:
                     {"role": "user", "content": f"Translate to English:\n{text}"}
                 ],
                 temperature=0.3,
-                max_tokens=2000,
-                timeout=30
+                max_tokens=2000
             )
             
             translated = response.choices[0].message.content.strip()
-            cache.set(text, self.domain, translated)
+            logger.info(f"Translated: {text[:30]}... -> {translated[:30]}...")
             
+            cache.set(text, self.domain, translated)
             self.stats["api_calls"] += 1
             return translated, False
             
         except Exception as e:
-            logger.error(f"Translation error: {e}")
+            logger.error(f"Translation API error: {e}", exc_info=True)
+            # 翻译失败时返回原文，但标记为失败
             return text, False
 
 class DocxProcessor:
