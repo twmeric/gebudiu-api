@@ -43,6 +43,15 @@ app = Flask(__name__)
 # 安全配置 - 允許所有來源（生產環境需要時再限制）
 CORS(app, origins="*", supports_credentials=False)
 
+# 額外 CORS 處理 - 確保所有響應都帶 CORS 頭（包括錯誤響應）
+@app.after_request
+def after_request(response):
+    """為所有響應添加 CORS 頭"""
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 # 速率限制
 limiter = Limiter(
     app=app,
