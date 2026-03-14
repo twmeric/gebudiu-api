@@ -64,16 +64,17 @@ limiter = Limiter(
 MAX_FILE_SIZE = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'.docx', '.xlsx'}
 
-# DeepSeek API 配置
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-if not DEEPSEEK_API_KEY:
-    logger.error("DEEPSEEK_API_KEY environment variable is required")
-    raise ValueError("DEEPSEEK_API_KEY environment variable is required")
+# DeepSeek API 配置 - 延遲加載
+def get_deepseek_client():
+    """延遲初始化 DeepSeek 客戶端"""
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    if not api_key:
+        logger.error("DEEPSEEK_API_KEY environment variable is required")
+        raise ValueError("DEEPSEEK_API_KEY environment variable is required")
+    return OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
 
-deepseek_client = OpenAI(
-    api_key=DEEPSEEK_API_KEY,
-    base_url="https://api.deepseek.com/v1"
-)
+# 延遲初始化
+deepseek_client = None
 
 # 领域配置
 DOMAINS = {
@@ -237,7 +238,8 @@ class TranslationService:
             return cached, True
         
         try:
-            response = deepseek_client.chat.completions.create(
+            client = get_deepseek_client()
+            response = client.chat.completions.create(
                 model="deepseek-chat",
                 messages=[
                     {"role": "system", "content": self.prompt},
