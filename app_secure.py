@@ -40,23 +40,8 @@ logger = logging.getLogger(__name__)
 # 创建应用
 app = Flask(__name__)
 
-# 安全配置 - 允許所有 GeBuDiu 相關域名
-import re
-
-def allow_origins_regex(origin):
-    """允許所有 gebudiu 相關域名"""
-    if not origin:
-        return True
-    allowed_patterns = [
-        r'https://gebudiu\.com',
-        r'https://www\.gebudiu\.com',
-        r'https://.*\.gebudiu\.pages\.dev',
-        r'http://localhost:\d+',
-        r'http://127\.0\.0\.1:\d+'
-    ]
-    return any(re.match(pattern, origin) for pattern in allowed_patterns)
-
-CORS(app, origins=allow_origins_regex, supports_credentials=True)
+# 安全配置 - 允許所有來源（生產環境需要時再限制）
+CORS(app, origins="*", supports_credentials=False)
 
 # 速率限制
 limiter = Limiter(
