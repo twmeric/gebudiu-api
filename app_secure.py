@@ -42,7 +42,7 @@ app = Flask(__name__)
 
 # 安全配置
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", 
-    "https://gebudiu.com,https://www.gebudiu.com,https://a91b7e9e.gebudiu.pages.dev").split(",")
+    "https://gebudiu.com,https://www.gebudiu.com,https://*.gebudiu.pages.dev").split(",")
 
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
