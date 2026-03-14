@@ -14,6 +14,7 @@ import logging
 import re
 from io import BytesIO
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Flask, request, send_file, jsonify, make_response
 from flask_cors import CORS
@@ -230,52 +231,121 @@ def should_translate(text):
     return True
 
 class TranslationService:
-    """翻译服务"""
+    """批量翻译服务 - 最大化利用 API 算力"""
     
     def __init__(self, domain="general"):
         self.domain = domain
         self.prompt = PROMPTS.get(domain, PROMPTS["general"])
-        self.stats = {"api_calls": 0, "cache_hits": 0}
+        self.stats = {"api_calls": 0, "cache_hits": 0, "tokens_saved": 0}
     
-    def translate_text(self, text):
-        """翻译单个文本段"""
-        if not should_translate(text):
-            return text, False
+    def translate_batch(self, texts):
+        """
+        批量翻译 - 一次 API 调用处理多个文本
         
-        cached = cache.get(text, self.domain)
-        if cached:
-            self.stats["cache_hits"] += 1
-            logger.info(f"Cache hit: {text[:30]}... -> {cached[:30]}...")
-            return cached, True
+        Args:
+            texts: list of (id, text) tuples
+        
+        Returns:
+            dict: {id: translated_text}
+        """
+        if not texts:
+            return {}
+        
+        # 1. 先检查缓存
+        to_translate = []
+        results = {}
+        
+        for item_id, text in texts:
+            if not should_translate(text):
+                results[item_id] = text
+                continue
+            
+            cached = cache.get(text, self.domain)
+            if cached:
+                results[item_id] = cached
+                self.stats["cache_hits"] += 1
+            else:
+                to_translate.append((item_id, text))
+        
+        if not to_translate:
+            return results
+        
+        # 2. 构建批量翻译请求
+        batch_text = "\n---\n".join([f"[{i}] {text}" for i, (_, text) in enumerate(to_translate)])
         
         try:
             client = get_deepseek_client()
-            logger.info(f"Calling DeepSeek API for: {text[:50]}...")
+            logger.info(f"Batch translating {len(to_translate)} texts (~{len(batch_text)} chars)")
+            
+            batch_prompt = f"""{self.prompt}
+
+Translate the following numbered texts from Chinese to English.
+Maintain the exact format: return each translation prefixed with its [number].
+
+TEXTS TO TRANSLATE:
+{batch_text}
+
+Return format:
+[0] English translation of text 0
+[1] English translation of text 1
+..."""
             
             response = client.chat.completions.create(
                 model="deepseek-chat",
                 messages=[
-                    {"role": "system", "content": self.prompt},
-                    {"role": "user", "content": f"Translate to English:\n{text}"}
+                    {"role": "system", "content": batch_prompt}
                 ],
                 temperature=0.3,
-                max_tokens=2000
+                max_tokens=4000  # 批量翻译需要更多 tokens
             )
             
-            translated = response.choices[0].message.content.strip()
-            logger.info(f"Translated: {text[:30]}... -> {translated[:30]}...")
+            # 3. 解析结果
+            raw_output = response.choices[0].message.content.strip()
+            translations = self._parse_batch_output(raw_output, len(to_translate))
             
-            cache.set(text, self.domain, translated)
+            # 4. 保存到缓存和结果
+            for i, (item_id, original) in enumerate(to_translate):
+                translated = translations.get(i, original)
+                cache.set(original, self.domain, translated)
+                results[item_id] = translated
+            
             self.stats["api_calls"] += 1
-            return translated, False
+            # 估算节省的 token：每个单独请求约 100 tokens 开销
+            self.stats["tokens_saved"] += (len(to_translate) - 1) * 100
+            
+            logger.info(f"Batch translated {len(to_translate)} texts in 1 API call")
+            return results
             
         except Exception as e:
-            logger.error(f"Translation API error: {e}", exc_info=True)
-            # 翻译失败时返回原文，但标记为失败
-            return text, False
+            logger.error(f"Batch translation error: {e}", exc_info=True)
+            # 失败时返回原文
+            for item_id, text in to_translate:
+                results[item_id] = text
+            return results
+    
+    def _parse_batch_output(self, output, expected_count):
+        """解析批量翻译的输出"""
+        results = {}
+        # 匹配 [0] ... [1] ... 格式
+        pattern = r'\[(\d+)\]\s*(.+?)(?=\[\d+\]|$)'
+        matches = re.findall(pattern, output, re.DOTALL)
+        
+        for idx_str, text in matches:
+            idx = int(idx_str)
+            if idx < expected_count:
+                results[idx] = text.strip()
+        
+        return results
+    
+    def translate_text(self, text):
+        """兼容旧接口 - 单条翻译"""
+        result = self.translate_batch([("single", text)])
+        translated = result.get("single", text)
+        is_cached = translated != text and self.stats["cache_hits"] > 0
+        return translated, is_cached
 
 class DocxProcessor:
-    """DOCX 文档处理器"""
+    """DOCX 文档处理器 - 批量翻譯優化版"""
     
     def __init__(self, translator):
         self.translator = translator
@@ -284,55 +354,119 @@ class DocxProcessor:
     def process(self, file_buffer):
         doc = Document(BytesIO(file_buffer))
         
-        for para in doc.paragraphs:
-            if para.text.strip():
-                self._translate_paragraph(para)
-                self.stats["paragraphs"] += 1
+        # 1. 收集所有需要翻譯的段落（帶 ID）
+        items_to_translate = []
+        item_map = {}  # id -> (paragraph, original_text)
         
+        def add_item(para, source_type):
+            text = para.text.strip()
+            if not text or not should_translate(text):
+                return
+            item_id = f"{source_type}_{len(items_to_translate)}"
+            items_to_translate.append((item_id, text))
+            item_map[item_id] = para
+            self.stats["paragraphs" if source_type == "para" else "cells"] += 1
+        
+        # 收集正文段落
+        for para in doc.paragraphs:
+            add_item(para, "para")
+        
+        # 收集表格段落
         for table in doc.tables:
-            self._process_table(table)
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        add_item(para, "cell")
             self.stats["tables"] += 1
         
+        # 收集頁眉頁腳
         for section in doc.sections:
             for header in [section.header, section.first_page_header]:
                 if header:
                     for para in header.paragraphs:
-                        if para.text.strip():
-                            self._translate_paragraph(para)
-            
+                        add_item(para, "header")
             for footer in [section.footer, section.first_page_footer]:
                 if footer:
                     for para in footer.paragraphs:
-                        if para.text.strip():
-                            self._translate_paragraph(para)
+                        add_item(para, "footer")
+        
+        logger.info(f"Collected {len(items_to_translate)} items to translate")
+        
+        # 2. 智能分塊（每批約 3000-3500 tokens）
+        batches = self._create_batches(items_to_translate, max_tokens=3500)
+        logger.info(f"Split into {len(batches)} batches")
+        
+        # 3. 並行批量翻譯（最多 3 個並發）
+        all_results = {}
+        if len(batches) == 1:
+            # 單批次直接處理
+            results = self.translator.translate_batch(batches[0])
+            all_results.update(results)
+        else:
+            # 多批次並行處理
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                future_to_batch = {
+                    executor.submit(self.translator.translate_batch, batch): i 
+                    for i, batch in enumerate(batches)
+                }
+                for future in as_completed(future_to_batch):
+                    batch_idx = future_to_batch[future]
+                    try:
+                        results = future.result()
+                        all_results.update(results)
+                        logger.info(f"Batch {batch_idx+1}/{len(batches)} completed")
+                    except Exception as e:
+                        logger.error(f"Batch {batch_idx+1} failed: {e}")
+        
+        # 4. 回填結果
+        for item_id, translated in all_results.items():
+            if item_id in item_map:
+                para = item_map[item_id]
+                original = para.text.strip()
+                if translated != original:
+                    self._apply_translation(para, translated)
         
         output = BytesIO()
         doc.save(output)
         output.seek(0)
         return output
     
-    def _translate_paragraph(self, para):
+    def _create_batches(self, items, max_tokens=3500):
+        """智能分塊 - 基於 token 估算"""
+        batches = []
+        current_batch = []
+        current_tokens = 0
+        
+        # System prompt + 輸出預留
+        overhead = 500  # system prompt + JSON 格式開銷
+        
+        for item_id, text in items:
+            # 估算：中文字符約 1.5 tokens，加上標記開銷
+            est_tokens = len(text) * 1.5 + 10  # +10 for [n] marker
+            
+            if current_tokens + est_tokens + overhead > max_tokens and current_batch:
+                batches.append(current_batch)
+                current_batch = []
+                current_tokens = 0
+            
+            current_batch.append((item_id, text))
+            current_tokens += est_tokens
+        
+        if current_batch:
+            batches.append(current_batch)
+        
+        return batches
+    
+    def _apply_translation(self, para, translated):
+        """應用翻譯結果到段落"""
         if not para.runs:
             return
         
-        full_text = para.text
-        if not full_text.strip():
-            return
-        
-        translated, _ = self.translator.translate_text(full_text)
-        
-        if translated != full_text and para.runs:
-            para.runs[0].text = translated
-            for run in para.runs[1:]:
-                run.text = ""
-    
-    def _process_table(self, table):
-        for row in table.rows:
-            for cell in row.cells:
-                for para in cell.paragraphs:
-                    if para.text.strip():
-                        self._translate_paragraph(para)
-                        self.stats["cells"] += 1
+        # 保留第一個 run 的格式，替換文本
+        para.runs[0].text = translated
+        # 清空其他 runs
+        for run in para.runs[1:]:
+            run.text = ""
 
 class XlsxProcessor:
     """XLSX 处理器"""
