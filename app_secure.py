@@ -68,9 +68,19 @@ ALLOWED_EXTENSIONS = {'.docx', '.xlsx'}
 def get_deepseek_client():
     """延遲初始化 DeepSeek 客戶端"""
     api_key = os.getenv("DEEPSEEK_API_KEY")
+    
+    # Debug: 記錄所有環境變量（隱藏敏感值）
     if not api_key:
-        logger.error("DEEPSEEK_API_KEY environment variable is required")
-        raise ValueError("DEEPSEEK_API_KEY environment variable is required")
+        logger.error("DEEPSEEK_API_KEY not found!")
+        logger.info(f"Available env vars: {[k for k in os.environ.keys() if not k.startswith('_')][:20]}")
+        # 嘗試小寫
+        api_key = os.getenv("deepseek_api_key") or os.getenv("Deepseek_Api_Key")
+        if api_key:
+            logger.info("Found API key with different case!")
+        else:
+            raise ValueError("DEEPSEEK_API_KEY environment variable is required")
+    
+    logger.info(f"API Key found: {api_key[:10]}... (length: {len(api_key)})")
     return OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
 
 # 延遲初始化
