@@ -1,0 +1,1282 @@
+<!--
+  GeBuDiu WhatsApp 整合 UI 組件
+  可整合到現有 index.html 的翻譯完成頁面
+  
+  使用方法:
+  1. 將此文件內容添加到 index.html 的 </body> 之前
+  2. 添加對應的 JavaScript
+  3. 在翻譯完成後調用 showWhatsAppShare()
+-->
+
+<!-- WhatsApp 分享模態框 -->
+<div id="whatsapp-share-modal" class="whatsapp-modal">
+    <div class="whatsapp-modal-content">
+        <div class="whatsapp-modal-header">
+            <h3>📱 分享到 WhatsApp</h3>
+            <button class="whatsapp-close-btn" onclick="closeWhatsAppModal()">&times;</button>
+        </div>
+        
+        <div class="whatsapp-modal-body">
+            <!-- 步驟 1: 驗證手機號 -->
+            <div id="whatsapp-step-verify" class="whatsapp-step">
+                <div class="whatsapp-intro">
+                    <div class="whatsapp-icon-large">📲</div>
+                    <p>通過 WhatsApp 分享翻譯文件給客戶</p>
+                </div>
+                
+                <div class="whatsapp-form-group">
+                    <label for="whatsapp-phone">您的 WhatsApp 手機號碼</label>
+                    <input type="tel" 
+                           id="whatsapp-phone" 
+                           class="whatsapp-input" 
+                           placeholder="+852 9123 4567 或 85291234567"
+                           autocomplete="tel">
+                    <span class="whatsapp-hint">支持國際格式，如 +86、+852、+1 等</span>
+                </div>
+                
+                <button class="whatsapp-btn whatsapp-btn-primary" onclick="sendVerificationCode()">
+                    <span class="whatsapp-btn-text">發送驗證碼</span>
+                    <span class="whatsapp-btn-loading hidden">發送中...</span>
+                </button>
+            </div>
+            
+            <!-- 步驟 2: 輸入驗證碼 -->
+            <div id="whatsapp-step-code" class="whatsapp-step hidden">
+                <div class="whatsapp-intro">
+                    <div class="whatsapp-icon-large">🔐</div>
+                    <p>驗證碼已發送到您的 WhatsApp</p>
+                    <p class="whatsapp-phone-display" id="code-sent-to"></p>
+                </div>
+                
+                <div class="whatsapp-form-group">
+                    <label for="whatsapp-code">請輸入 6 位驗證碼</label>
+                    <input type="text" 
+                           id="whatsapp-code" 
+                           class="whatsapp-input whatsapp-code-input" 
+                           maxlength="6" 
+                           placeholder="123456"
+                           inputmode="numeric">
+                    <span class="whatsapp-hint">
+                        驗證碼 <span id="countdown">10:00</span> 內有效
+                        <button class="whatsapp-link-btn" onclick="resendCode()">重新發送</button>
+                    </span>
+                </div>
+                
+                <button class="whatsapp-btn whatsapp-btn-primary" onclick="verifyCode()">
+                    <span class="whatsapp-btn-text">驗證並繼續</span>
+                    <span class="whatsapp-btn-loading hidden">驗證中...</span>
+                </button>
+            </div>
+            
+            <!-- 步驟 3: 分享選項 -->
+            <div id="whatsapp-step-share" class="whatsapp-step hidden">
+                <div class="whatsapp-intro">
+                    <div class="whatsapp-icon-large">✅</div>
+                    <p>驗證成功！選擇分享方式</p>
+                </div>
+                
+                <div class="whatsapp-file-preview">
+                    <div class="whatsapp-file-icon">📄</div>
+                    <div class="whatsapp-file-info">
+                        <div class="whatsapp-file-name" id="share-file-name">filename.docx</div>
+                        <div class="whatsapp-file-size" id="share-file-size">25 KB</div>
+                    </div>
+                </div>
+                
+                <div class="whatsapp-share-options">
+                    <button class="whatsapp-share-btn" onclick="shareToSelf()">
+                        <span class="whatsapp-share-icon">📤</span>
+                        <span class="whatsapp-share-text">
+                            <strong>發送給自己</strong>
+                            <small>將文件發送到您的 WhatsApp</small>
+                        </span>
+                    </button>
+                    
+                    <button class="whatsapp-share-btn" onclick="showCustomerSelection()">
+                        <span class="whatsapp-share-icon">👤</span>
+                        <span class="whatsapp-share-text">
+                            <strong>發送給客戶</strong>
+                            <small>從通訊錄選擇或輸入新手機號</small>
+                        </span>
+                    </button>
+                    
+                    <button class="whatsapp-share-btn" onclick="generateShareLink()">
+                        <span class="whatsapp-share-icon">🔗</span>
+                        <span class="whatsapp-share-text">
+                            <strong>生成分享鏈接</strong>
+                            <small>創建可分享的鏈接</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 步驟 4: 選擇客戶 -->
+            <div id="whatsapp-step-customer" class="whatsapp-step hidden">
+                <div class="whatsapp-step-header">
+                    <button class="whatsapp-back-btn" onclick="backToShareOptions()">← 返回</button>
+                    <h4>選擇客戶</h4>
+                </div>
+                
+                <!-- 客戶通訊錄列表 -->
+                <div id="whatsapp-contacts-list" class="whatsapp-contacts-list">
+                    <!-- 動態加載 -->
+                </div>
+                
+                <div class="whatsapp-divider">
+                    <span>或</span>
+                </div>
+                
+                <!-- 新手機號輸入 -->
+                <div class="whatsapp-form-group">
+                    <label for="new-customer-phone">新手機號碼</label>
+                    <input type="tel" 
+                           id="new-customer-phone" 
+                           class="whatsapp-input" 
+                           placeholder="+86 138 0013 8000">
+                </div>
+                
+                <div class="whatsapp-form-group">
+                    <label for="new-customer-name">客戶名稱（可選）</label>
+                    <input type="text" 
+                           id="new-customer-name" 
+                           class="whatsapp-input" 
+                           placeholder="客戶姓名或公司名">
+                </div>
+                
+                <button class="whatsapp-btn whatsapp-btn-primary" onclick="shareToNewCustomer()">
+                    發送給此客戶
+                </button>
+            </div>
+            
+            <!-- 步驟 5: 分享結果 -->
+            <div id="whatsapp-step-result" class="whatsapp-step hidden">
+                <div class="whatsapp-result" id="whatsapp-result-content">
+                    <!-- 動態內容 -->
+                </div>
+                
+                <button class="whatsapp-btn whatsapp-btn-secondary" onclick="closeWhatsAppModal()">
+                    完成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加客戶模態框 -->
+<div id="whatsapp-add-contact-modal" class="whatsapp-modal whatsapp-modal-small">
+    <div class="whatsapp-modal-content">
+        <div class="whatsapp-modal-header">
+            <h4>添加客戶</h4>
+            <button class="whatsapp-close-btn" onclick="closeAddContactModal()">&times;</button>
+        </div>
+        
+        <div class="whatsapp-modal-body">
+            <div class="whatsapp-form-group">
+                <label for="contact-name">客戶名稱 *</label>
+                <input type="text" id="contact-name" class="whatsapp-input" placeholder="姓名或公司名">
+            </div>
+            
+            <div class="whatsapp-form-group">
+                <label for="contact-phone">手機號碼 *</label>
+                <input type="tel" id="contact-phone" class="whatsapp-input" placeholder="+86 138 0013 8000">
+            </div>
+            
+            <div class="whatsapp-form-group">
+                <label for="contact-company">公司名稱（可選）</label>
+                <input type="text" id="contact-company" class="whatsapp-input" placeholder="公司名稱">
+            </div>
+            
+            <div class="whatsapp-form-group">
+                <label for="contact-notes">備註（可選）</label>
+                <textarea id="contact-notes" class="whatsapp-textarea" placeholder="備註信息，如：重要客戶、偏好語言等"></textarea>
+            </div>
+            
+            <button class="whatsapp-btn whatsapp-btn-primary" onclick="saveContact()">
+                保存客戶
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 樣式 -->
+<style>
+/* WhatsApp Modal 基礎樣式 */
+.whatsapp-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.whatsapp-modal.active {
+    display: flex;
+}
+
+.whatsapp-modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: whatsapp-modal-in 0.3s ease;
+}
+
+.whatsapp-modal-small .whatsapp-modal-content {
+    max-width: 400px;
+}
+
+@keyframes whatsapp-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.whatsapp-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.whatsapp-modal-header h3,
+.whatsapp-modal-header h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.whatsapp-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.whatsapp-close-btn:hover {
+    color: #111827;
+}
+
+.whatsapp-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+/* 步驟樣式 */
+.whatsapp-step {
+    animation: whatsapp-step-in 0.3s ease;
+}
+
+.whatsapp-step.hidden {
+    display: none;
+}
+
+@keyframes whatsapp-step-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.whatsapp-step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.whatsapp-step-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+}
+
+.whatsapp-back-btn {
+    background: none;
+    border: none;
+    color: #6366f1;
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.whatsapp-back-btn:hover {
+    background: #eef2ff;
+}
+
+/* 介紹區域 */
+.whatsapp-intro {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.whatsapp-icon-large {
+    font-size: 4rem;
+    margin-bottom: 12px;
+}
+
+.whatsapp-intro p {
+    color: #6b7280;
+    margin: 0;
+}
+
+.whatsapp-phone-display {
+    font-weight: 600;
+    color: #111827;
+    margin-top: 8px;
+}
+
+/* 表單元素 */
+.whatsapp-form-group {
+    margin-bottom: 20px;
+}
+
+.whatsapp-form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.whatsapp-input,
+.whatsapp-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+}
+
+.whatsapp-input:focus,
+.whatsapp-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.whatsapp-code-input {
+    font-size: 1.5rem;
+    letter-spacing: 8px;
+    text-align: center;
+    font-family: monospace;
+}
+
+.whatsapp-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.whatsapp-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 6px;
+}
+
+.whatsapp-link-btn {
+    background: none;
+    border: none;
+    color: #6366f1;
+    cursor: pointer;
+    font-size: inherit;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.whatsapp-link-btn:hover {
+    color: #4f46e5;
+}
+
+/* 按鈕 */
+.whatsapp-btn {
+    width: 100%;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.whatsapp-btn-primary {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: white;
+}
+
+.whatsapp-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.whatsapp-btn-primary:active {
+    transform: translateY(0);
+}
+
+.whatsapp-btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.whatsapp-btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.whatsapp-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.whatsapp-btn-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.whatsapp-btn-loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: whatsapp-spin 0.8s linear infinite;
+}
+
+@keyframes whatsapp-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 文件預覽 */
+.whatsapp-file-preview {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.whatsapp-file-icon {
+    font-size: 2.5rem;
+}
+
+.whatsapp-file-name {
+    font-weight: 600;
+    color: #111827;
+    word-break: break-all;
+}
+
+.whatsapp-file-size {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* 分享選項 */
+.whatsapp-share-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.whatsapp-share-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.whatsapp-share-btn:hover {
+    border-color: #6366f1;
+    background: #fafbff;
+}
+
+.whatsapp-share-icon {
+    font-size: 1.75rem;
+}
+
+.whatsapp-share-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.whatsapp-share-text strong {
+    color: #111827;
+    font-size: 1rem;
+}
+
+.whatsapp-share-text small {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: normal;
+}
+
+/* 客戶列表 */
+.whatsapp-contacts-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.whatsapp-contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.whatsapp-contact-item:hover {
+    border-color: #6366f1;
+    background: #fafbff;
+}
+
+.whatsapp-contact-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.whatsapp-contact-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.whatsapp-contact-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.whatsapp-contact-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+.whatsapp-contact-phone {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.whatsapp-contact-company {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.whatsapp-contact-select {
+    color: #6366f1;
+    font-size: 1.25rem;
+}
+
+.whatsapp-empty-contacts {
+    text-align: center;
+    padding: 24px;
+    color: #6b7280;
+}
+
+.whatsapp-empty-contacts button {
+    margin-top: 12px;
+}
+
+/* 分隔線 */
+.whatsapp-divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.whatsapp-divider::before,
+.whatsapp-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+.whatsapp-divider span {
+    padding: 0 16px;
+}
+
+/* 結果頁面 */
+.whatsapp-result {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.whatsapp-result-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+}
+
+.whatsapp-result-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.whatsapp-result-message {
+    color: #6b7280;
+    margin-bottom: 20px;
+}
+
+.whatsapp-result-details {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.whatsapp-result-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.whatsapp-result-row:last-child {
+    border-bottom: none;
+}
+
+.whatsapp-result-label {
+    color: #6b7280;
+}
+
+.whatsapp-result-value {
+    font-weight: 500;
+    color: #111827;
+}
+
+/* 工具類 */
+.hidden {
+    display: none !important;
+}
+
+/* 響應式 */
+@media (max-width: 480px) {
+    .whatsapp-modal {
+        padding: 10px;
+    }
+    
+    .whatsapp-modal-content {
+        border-radius: 12px;
+    }
+    
+    .whatsapp-modal-header,
+    .whatsapp-modal-body {
+        padding: 16px;
+    }
+    
+    .whatsapp-icon-large {
+        font-size: 3rem;
+    }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .whatsapp-modal-content {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .whatsapp-modal-header {
+        border-color: #374151;
+    }
+    
+    .whatsapp-modal-header h3,
+    .whatsapp-modal-header h4 {
+        color: #f9fafb;
+    }
+    
+    .whatsapp-close-btn {
+        color: #9ca3af;
+    }
+    
+    .whatsapp-close-btn:hover {
+        color: #f9fafb;
+    }
+    
+    .whatsapp-form-group label {
+        color: #d1d5db;
+    }
+    
+    .whatsapp-input,
+    .whatsapp-textarea {
+        background: #111827;
+        border-color: #374151;
+        color: #f9fafb;
+    }
+    
+    .whatsapp-input:focus,
+    .whatsapp-textarea:focus {
+        border-color: #6366f1;
+    }
+    
+    .whatsapp-file-preview {
+        background: #111827;
+    }
+    
+    .whatsapp-file-name {
+        color: #f9fafb;
+    }
+    
+    .whatsapp-share-btn {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    .whatsapp-share-btn:hover {
+        border-color: #6366f1;
+        background: #111827;
+    }
+    
+    .whatsapp-share-text strong {
+        color: #f9fafb;
+    }
+    
+    .whatsapp-contact-item {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    .whatsapp-contact-item:hover {
+        background: #111827;
+    }
+    
+    .whatsapp-contact-name {
+        color: #f9fafb;
+    }
+    
+    .whatsapp-divider::before,
+    .whatsapp-divider::after {
+        background: #374151;
+    }
+    
+    .whatsapp-result-details {
+        background: #111827;
+    }
+    
+    .whatsapp-result-row {
+        border-color: #374151;
+    }
+    
+    .whatsapp-result-value {
+        color: #f9fafb;
+    }
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+// WhatsApp 整合 JavaScript
+(function() {
+    'use strict';
+    
+    // 全局變量
+    let currentFile = null;
+    let currentPhone = null;
+    let countdownInterval = null;
+    let shareLink = null;
+    
+    // API 基礎 URL
+    const API_BASE = window.location.origin;
+    
+    // ============ Modal 控制 ============
+    
+    window.showWhatsAppShare = function(fileInfo) {
+        currentFile = fileInfo;
+        
+        // 更新文件預覽
+        if (fileInfo) {
+            document.getElementById('share-file-name').textContent = fileInfo.name;
+            document.getElementById('share-file-size').textContent = formatFileSize(fileInfo.size);
+        }
+        
+        // 檢查是否已驗證
+        const savedPhone = localStorage.getItem('whatsapp_phone');
+        if (savedPhone) {
+            currentPhone = savedPhone;
+            showStep('whatsapp-step-share');
+        } else {
+            showStep('whatsapp-step-verify');
+        }
+        
+        document.getElementById('whatsapp-share-modal').classList.add('active');
+    };
+    
+    window.closeWhatsAppModal = function() {
+        document.getElementById('whatsapp-share-modal').classList.remove('active');
+        clearCountdown();
+        // 重置表單
+        setTimeout(() => {
+            document.getElementById('whatsapp-phone').value = '';
+            document.getElementById('whatsapp-code').value = '';
+        }, 300);
+    };
+    
+    function showStep(stepId) {
+        // 隱藏所有步驟
+        document.querySelectorAll('.whatsapp-step').forEach(step => {
+            step.classList.add('hidden');
+        });
+        // 顯示指定步驟
+        document.getElementById(stepId).classList.remove('hidden');
+    }
+    
+    // ============ 驗證流程 ============
+    
+    window.sendVerificationCode = async function() {
+        const phoneInput = document.getElementById('whatsapp-phone');
+        const phone = phoneInput.value.trim();
+        
+        if (!phone) {
+            showError('請輸入手機號碼');
+            return;
+        }
+        
+        const btn = document.querySelector('#whatsapp-step-verify .whatsapp-btn');
+        setButtonLoading(btn, true);
+        
+        try {
+            const response = await fetch(`${API_BASE}/whatsapp/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                currentPhone = data.phone;
+                document.getElementById('code-sent-to').textContent = data.phone;
+                showStep('whatsapp-step-code');
+                startCountdown(data.expires_in);
+            } else {
+                showError(data.message || '發送失敗');
+            }
+        } catch (error) {
+            showError('網絡錯誤，請重試');
+            console.error(error);
+        } finally {
+            setButtonLoading(btn, false);
+        }
+    };
+    
+    window.verifyCode = async function() {
+        const codeInput = document.getElementById('whatsapp-code');
+        const code = codeInput.value.trim();
+        
+        if (!code || code.length !== 6) {
+            showError('請輸入 6 位驗證碼');
+            return;
+        }
+        
+        const btn = document.querySelector('#whatsapp-step-code .whatsapp-btn');
+        setButtonLoading(btn, true);
+        
+        try {
+            const response = await fetch(`${API_BASE}/whatsapp/verify/code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: currentPhone, code })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // 保存用戶手機號
+                localStorage.setItem('whatsapp_phone', currentPhone);
+                if (data.user && data.user.name) {
+                    localStorage.setItem('whatsapp_name', data.user.name);
+                }
+                
+                clearCountdown();
+                showStep('whatsapp-step-share');
+            } else {
+                showError(data.message || '驗證失敗');
+            }
+        } catch (error) {
+            showError('網絡錯誤，請重試');
+            console.error(error);
+        } finally {
+            setButtonLoading(btn, false);
+        }
+    };
+    
+    window.resendCode = function() {
+        clearCountdown();
+        showStep('whatsapp-step-verify');
+        document.getElementById('whatsapp-phone').value = currentPhone || '';
+    };
+    
+    // ============ 分享功能 ============
+    
+    window.shareToSelf = async function() {
+        await performShare('self');
+    };
+    
+    window.showCustomerSelection = async function() {
+        // 加載客戶列表
+        await loadContacts();
+        showStep('whatsapp-step-customer');
+    };
+    
+    window.backToShareOptions = function() {
+        showStep('whatsapp-step-share');
+    };
+    
+    window.shareToNewCustomer = async function() {
+        const phone = document.getElementById('new-customer-phone').value.trim();
+        const name = document.getElementById('new-customer-name').value.trim();
+        
+        if (!phone) {
+            showError('請輸入客戶手機號碼');
+            return;
+        }
+        
+        await performShare('customer', phone, name);
+    };
+    
+    window.shareToContact = async function(phone, name) {
+        await performShare('customer', phone, name);
+    };
+    
+    window.generateShareLink = async function() {
+        // 生成臨時分享鏈接
+        shareLink = `${API_BASE}/download/${generateToken()}`;
+        await performShare('link', null, null, shareLink);
+    };
+    
+    async function performShare(shareType, targetPhone = null, targetName = null, link = null) {
+        if (!currentFile) {
+            showError('文件信息缺失');
+            return;
+        }
+        
+        const shareData = {
+            file_name: currentFile.name,
+            file_type: currentFile.type || 'docx',
+            file_size: currentFile.size,
+            share_type: shareType,
+            target_phone: targetPhone,
+            target_name: targetName,
+            share_link: link || shareLink
+        };
+        
+        try {
+            const response = await fetch(`${API_BASE}/whatsapp/share`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Phone': currentPhone
+                },
+                body: JSON.stringify(shareData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showShareResult(true, shareType, data);
+            } else {
+                showShareResult(false, shareType, data);
+            }
+        } catch (error) {
+            showShareResult(false, shareType, { message: '網絡錯誤' });
+            console.error(error);
+        }
+    }
+    
+    // ============ 客戶通訊錄 ============
+    
+    async function loadContacts() {
+        const container = document.getElementById('whatsapp-contacts-list');
+        container.innerHTML = '<div class="whatsapp-empty-contacts">加載中...</div>';
+        
+        try {
+            const response = await fetch(`${API_BASE}/whatsapp/contacts`, {
+                headers: { 'X-User-Phone': currentPhone }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.contacts.length > 0) {
+                container.innerHTML = data.contacts.map(contact => `
+                    <div class="whatsapp-contact-item" onclick="shareToContact('${contact.phone}', '${contact.name}')">
+                        <div class="whatsapp-contact-info">
+                            <div class="whatsapp-contact-avatar">${contact.name.charAt(0).toUpperCase()}</div>
+                            <div class="whatsapp-contact-details">
+                                <span class="whatsapp-contact-name">${escapeHtml(contact.name)}</span>
+                                <span class="whatsapp-contact-phone">${contact.phone}</span>
+                                ${contact.company ? `<span class="whatsapp-contact-company">${escapeHtml(contact.company)}</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="whatsapp-contact-select">›</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="whatsapp-empty-contacts">
+                        暫無客戶記錄
+                        <br>
+                        <button class="whatsapp-link-btn" onclick="showAddContactModal()">添加第一個客戶</button>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            container.innerHTML = '<div class="whatsapp-empty-contacts">加載失敗</div>';
+            console.error(error);
+        }
+    }
+    
+    window.showAddContactModal = function() {
+        document.getElementById('whatsapp-add-contact-modal').classList.add('active');
+    };
+    
+    window.closeAddContactModal = function() {
+        document.getElementById('whatsapp-add-contact-modal').classList.remove('active');
+    };
+    
+    window.saveContact = async function() {
+        const name = document.getElementById('contact-name').value.trim();
+        const phone = document.getElementById('contact-phone').value.trim();
+        const company = document.getElementById('contact-company').value.trim();
+        const notes = document.getElementById('contact-notes').value.trim();
+        
+        if (!name || !phone) {
+            showError('請填寫名稱和手機號碼');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_BASE}/whatsapp/contacts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Phone': currentPhone
+                },
+                body: JSON.stringify({ name, phone, company, notes })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                closeAddContactModal();
+                // 清空表單
+                document.getElementById('contact-name').value = '';
+                document.getElementById('contact-phone').value = '';
+                document.getElementById('contact-company').value = '';
+                document.getElementById('contact-notes').value = '';
+                // 刷新列表
+                await loadContacts();
+            } else {
+                showError(data.message || '添加失敗');
+            }
+        } catch (error) {
+            showError('網絡錯誤');
+            console.error(error);
+        }
+    };
+    
+    // ============ 結果展示 ============
+    
+    function showShareResult(success, shareType, data) {
+        const container = document.getElementById('whatsapp-result-content');
+        
+        if (success) {
+            let shareTypeText = {
+                'self': '發送給自己',
+                'customer': '發送給客戶',
+                'link': '生成分享鏈接'
+            }[shareType];
+            
+            container.innerHTML = `
+                <div class="whatsapp-result-icon">✅</div>
+                <div class="whatsapp-result-title">分享成功！</div>
+                <div class="whatsapp-result-message">文件已通過 WhatsApp ${shareTypeText}</div>
+                <div class="whatsapp-result-details">
+                    <div class="whatsapp-result-row">
+                        <span class="whatsapp-result-label">文件名</span>
+                        <span class="whatsapp-result-value">${escapeHtml(currentFile.name)}</span>
+                    </div>
+                    <div class="whatsapp-result-row">
+                        <span class="whatsapp-result-label">發送方式</span>
+                        <span class="whatsapp-result-value">${shareTypeText}</span>
+                    </div>
+                    ${data.sent_to ? `
+                    <div class="whatsapp-result-row">
+                        <span class="whatsapp-result-label">接收號碼</span>
+                        <span class="whatsapp-result-value">${data.sent_to}</span>
+                    </div>
+                    ` : ''}
+                    ${data.share_link ? `
+                    <div class="whatsapp-result-row">
+                        <span class="whatsapp-result-label">分享鏈接</span>
+                        <span class="whatsapp-result-value">
+                            <a href="${data.share_link}" target="_blank">查看</a>
+                        </span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="whatsapp-result-icon">❌</div>
+                <div class="whatsapp-result-title">分享失敗</div>
+                <div class="whatsapp-result-message">${escapeHtml(data.message || '請稍後重試')}</div>
+            `;
+        }
+        
+        showStep('whatsapp-step-result');
+    }
+    
+    // ============ 工具函數 ============
+    
+    function startCountdown(seconds) {
+        clearCountdown();
+        let remaining = seconds;
+        
+        const updateDisplay = () => {
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            document.getElementById('countdown').textContent = 
+                `${mins}:${secs.toString().padStart(2, '0')}`;
+        };
+        
+        updateDisplay();
+        
+        countdownInterval = setInterval(() => {
+            remaining--;
+            updateDisplay();
+            
+            if (remaining <= 0) {
+                clearCountdown();
+                document.getElementById('countdown').textContent = '已過期';
+            }
+        }, 1000);
+    }
+    
+    function clearCountdown() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }
+    
+    function setButtonLoading(btn, loading) {
+        const text = btn.querySelector('.whatsapp-btn-text');
+        const loader = btn.querySelector('.whatsapp-btn-loading');
+        
+        if (loading) {
+            btn.disabled = true;
+            text.classList.add('hidden');
+            loader.classList.remove('hidden');
+        } else {
+            btn.disabled = false;
+            text.classList.remove('hidden');
+            loader.classList.add('hidden');
+        }
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+    
+    function generateToken() {
+        return Math.random().toString(36).substring(2, 15) + 
+               Math.random().toString(36).substring(2, 15);
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function showError(message) {
+        // 簡單的錯誤提示，可以替換為更友好的 UI
+        alert(message);
+    }
+    
+    // 點擊模態框外部關閉
+    document.getElementById('whatsapp-share-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeWhatsAppModal();
+        }
+    });
+    
+    document.getElementById('whatsapp-add-contact-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAddContactModal();
+        }
+    });
+    
+    // 驗證碼輸入自動跳轉
+    document.getElementById('whatsapp-code').addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, '');
+        if (this.value.length === 6) {
+            verifyCode();
+        }
+    });
+    
+})();
+</script>

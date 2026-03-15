@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeBuDiu (GBD) - 越翻譯，格式越精準 | 專業 DOCX 翻譯神器</title>
+    <meta name="description" content="專為外貿人打造的 AI 翻譯神器。DOCX 格式完美保留，翻譯記憶庫省錢 60%，AI 自動領域檢測，專業術語管理。">
+    <meta name="keywords" content="DOCX翻譯, 外貿翻譯, AI翻譯, 文檔翻譯, 翻譯記憶庫, 術語管理">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="GeBuDiu - 越翻譯，格式越精準">
+    <meta property="og:description" content="專為外貿人打造的 AI 翻譯神器">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gbd.jkdcoding.com">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            /* Primary Colors */
+            --color-primary: #E07B39;
+            --color-primary-light: #F4A261;
+            --color-primary-dark: #C65D1A;
+            --color-primary-subtle: #FFF5ED;
+            
+            /* Secondary Colors */
+            --color-secondary: #2A9D8F;
+            --color-secondary-light: #4ECDC4;
+            --color-accent: #264653;
+            
+            /* Neutral Colors */
+            --color-bg-primary: #FAFAFA;
+            --color-bg-secondary: #FFFFFF;
+            --color-bg-tertiary: #F5F5F5;
+            --color-text-primary: #1A1A1A;
+            --color-text-secondary: #666666;
+            --color-text-muted: #999999;
+            --color-border: #E8E8E8;
+            
+            /* Gradients */
+            --gradient-hero: linear-gradient(135deg, #E07B39 0%, #F4A261 50%, #E9C46A 100%);
+            --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%);
+            --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            
+            /* Typography */
+            --font-heading: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-en: 'Inter', -apple-system, sans-serif;
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            --space-3xl: 64px;
+            --space-4xl: 96px;
+            
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-full: 9999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(224,123,57,0.15);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 350ms ease;
+        }
+        
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-primary);
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        
+        button {
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+        
+        ul, ol {
+            list-style: none;
+        }
+        
+        /* ===== Utilities ===== */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-lg);
+        }
+        
+        .text-gradient {
+            background: var(--gradient-hero);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* ===== Buttons ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-normal);
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+            box-shadow: 0 4px 14px rgba(224,123,57,0.4);
+        }
+        
+        .btn-primary:hover {
+            background: var(--color-primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(224,123,57,0.5);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-bg-tertiary);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-text-secondary);
+        }
+        
+        .btn-ghost:hover {
+            color: var(--color-primary);
+        }
+        
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+        
+        /* ===== Navigation ===== */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: var(--space-md) 0;
+            transition: all var(--transition-normal);
+        }
+        
+        .nav.scrolled {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-sm);
+            padding: var(--space-sm) 0;
+        }
+        
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-text-primary);
+        }
+        
+        .nav-logo span {
+            color: var(--color-primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xl);
+        }
+        
+        .nav-link {
+            font-size: 15px;
+            color: var(--color-text-secondary);
+            transition: color var(--transition-fast);
+        }
+        
+        .nav-link:hover {
+            color: var(--color-primary);
+        }
+        
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            padding: var(--space-sm);
+        }
+        
+        .nav-toggle span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: var(--color-text-primary);
+            transition: all var(--transition-normal);
+        }
+        
+        /* ===== Hero Section ===== */
+        .hero {
+            position: relative;
+            padding: 140px 0 100px;
+            overflow: hidden;
+        }
+        
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(224,123,57,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(42,157,143,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        
+        .hero-container {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3xl);
+            align-items: center;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 8px 16px;
+            background: var(--color-primary-subtle);
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            color: var(--color-primary-dark);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .hero-badge::before {
+            content: '🔥';
+        }
+        
+        .hero-title {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: var(--space-lg);
+            letter-spacing: -0.02em;
+        }
+        
+        .hero-title em {
+            font-style: normal;
+            color: var(--color-primary);
+            position: relative;
+        }
+        
+        .hero-title em::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: rgba(224,123,57,0.2);
+            border-radius: 4px;
+            z-index: -1;
+        }
+        
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-xl);
+            line-height: 1.6;
+        }
+        
+        .hero-features {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+        
+        .hero-feature {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 16px;
+            color: var(--color-text-secondary);
+        }
+        
+        .hero-feature::before {
+            content: '✓';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: var(--color-secondary);
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .hero-actions {
+            display: flex;
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .hero-hint {
+            font-size: 14px;
+            color: var(--color-text-muted);
+        }
+        
+        .hero-hint strong {
+            color: var(--color-primary);
+        }
+        
+        /* Hero Visual */
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .hero-doc {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl), var(--shadow-glow);
+            padding: var(--space-xl);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .hero-doc-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .hero-doc-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-hero);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .hero-doc-title {
+            font-weight: 600;
+        }
+        
+        .hero-doc-meta {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+        
+        .hero-progress {
+            margin-bottom: var(--space-lg);
+        }
+        
+        .hero-progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .hero-progress-bar {
+            height: 8px;
+            background: var(--color-bg-tertiary);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+        
+        .hero-progress-fill {
+            height: 100%;
+            width: 65%;
+            background: var(--gradient-hero);
+            border-radius: var(--radius-full);
+            position: relative;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .hero-doc-content {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+        
+        .hero-doc-line {
+            height: 12px;
+            background: var(--color-bg-tertiary);
+            border-radius: var(--radius-sm);
+        }
+        
+        .hero-doc-line:nth-child(1) { width: 100%; }
+        .hero-doc-line:nth-child(2) { width: 90%; }
+        .hero-doc-line:nth-child(3) { width: 95%; }
+        .hero-doc-line:nth-child(4) { width: 60%; }
+        
+        .hero-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-top: var(--space-lg);
+            padding: var(--space-md);
+            background: var(--color-primary-subtle);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            color: var(--color-primary-dark);
+        }
+        
+        .hero-status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--color-secondary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* ===== Social Proof ===== */
+        .social-proof {
+            padding: var(--space-2xl) 0;
+            background: white;
+            border-top: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .social-proof-header {
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+        
+        .social-proof-title {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-md);
+        }
+        
+        .social-proof-title strong {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        .social-proof-logos {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-3xl);
+            flex-wrap: wrap;
+        }
+        
+        .social-proof-logo {
+            height: 32px;
+            opacity: 0.4;
+            filter: grayscale(100%);
+            transition: all var(--transition-normal);
+        }
+        
+        .social-proof-logo:hover {
+            opacity: 1;
+            filter: grayscale(0%);
+        }
+        
+        .social-proof-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-xl);
+            margin-top: var(--space-3xl);
+            padding-top: var(--space-2xl);
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .social-proof-stat {
+            text-align: center;
+        }
+        
+        .social-proof-stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--color-primary);
+            font-family: var(--font-en);
+        }
+        
+        .social-proof-stat-label {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            margin-top: var(--space-xs);
+        }
+        
+        /* ===== Section Common ===== */
+        .section {
+            padding: var(--space-4xl) 0;
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 640px;
+            margin: 0 auto var(--space-3xl);
+        }
+        
+        .section-label {
+            display: inline-block;
+            padding: 6px 12px;
+            background: var(--color-primary-subtle);
+            color: var(--color-primary);
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-full);
+            margin-bottom: var(--space-md);
+        }
+        
+        .section-title {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: var(--space-md);
+            line-height: 1.2;
+        }
+        
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--color-text-secondary);
+        }
+        
+        /* ===== Features Section ===== */
+        .features {
+            background: var(--color-bg-primary);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-xl);
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-normal);
+            border: 1px solid var(--color-border);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--color-primary-light);
+        }
+        
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--gradient-hero);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .feature-icon.blue {
+            background: linear-gradient(135deg, #264653 0%, #2A9D8F 100%);
+        }
+        
+        .feature-icon.green {
+            background: linear-gradient(135deg, #2A9D8F 0%, #4ECDC4 100%);
+        }
+        
+        .feature-icon.purple {
+            background: linear-gradient(135deg, #6B5B95 0%, #88B0D3 100%);
+        }
+        
+        .feature-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .feature-desc {
+            font-size: 15px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-md);
+            line-height: 1.6;
+        }
+        
+        .feature-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--color-primary-subtle);
+            color: var(--color-primary);
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: var(--radius-full);
+        }
+        
+        .feature-link {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-top: var(--space-md);
+        }
+        
+        .feature-link:hover {
+            gap: var(--space-sm);
+        }
+        
+        /* ===== Use Cases Section ===== */
+        .use-cases {
+            background: white;
+        }
+        
+        .use-cases-tabs {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-3xl);
+            flex-wrap: wrap;
+        }
+        
+        .use-cases-tab {
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            background: transparent;
+            border-radius: var(--radius-full);
+            transition: all var(--transition-fast);
+        }
+        
+        .use-cases-tab:hover {
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+        }
+        
+        .use-cases-tab.active {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .use-cases-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3xl);
+            align-items: center;
+        }
+        
+        .use-case-text h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .use-case-section {
+            margin-bottom: var(--space-xl);
+        }
+        
+        .use-case-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-md);
+        }
+        
+        .use-case-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+        
+        .use-case-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            font-size: 15px;
+            color: var(--color-text-secondary);
+        }
+        
+        .use-case-item::before {
+            content: '•';
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+        
+        .use-case-visual {
+            background: var(--color-bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .use-case-preview {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        
+        .use-case-preview-header {
+            padding: var(--space-md) var(--space-lg);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-secondary) 100%);
+            color: white;
+        }
+        
+        .use-case-preview-body {
+            padding: var(--space-lg);
+        }
+        
+        .use-case-preview-row {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-sm) 0;
+            border-bottom: 1px solid var(--color-border);
+            font-size: 14px;
+        }
+        
+        .use-case-preview-row:last-child {
+            border-bottom: none;
+        }
+        
+        .use-case-preview-label {
+            color: var(--color-text-muted);
+        }
+        
+        .use-case-preview-value {
+            font-weight: 600;
+            color: var(--color-secondary);
+        }
+        
+        /* ===== How It Works ===== */
+        .how-it-works {
+            background: var(--color-bg-primary);
+        }
+        
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-xl);
+            position: relative;
+        }
+        
+        .steps::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 12.5%;
+            right: 12.5%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            z-index: 0;
+        }
+        
+        .step {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+        
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 3px solid var(--color-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto var(--space-lg);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .step-icon {
+            font-size: 32px;
+            margin-bottom: var(--space-md);
+        }
+        
+        .step-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .step-desc {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-sm);
+        }
+        
+        .step-time {
+            font-size: 13px;
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        /* ===== Pricing Section ===== */
+        .pricing {
+            background: white;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-xl);
+            align-items: start;
+        }
+        
+        .pricing-card {
+            background: var(--color-bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            border: 2px solid transparent;
+            transition: all var(--transition-normal);
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .pricing-card.featured {
+            background: white;
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-xl), var(--shadow-glow);
+            position: relative;
+        }
+        
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 6px 16px;
+            background: var(--gradient-hero);
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-full);
+        }
+        
+        .pricing-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .pricing-desc {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .pricing-price {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--color-text-primary);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .pricing-price span {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--color-text-muted);
+        }
+        
+        .pricing-period {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-xl);
+        }
+        
+        .pricing-features {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+        
+        .pricing-feature {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 15px;
+        }
+        
+        .pricing-feature::before {
+            content: '✓';
+            width: 20px;
+            height: 20px;
+            background: var(--color-secondary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        
+        .pricing-feature.disabled {
+            color: var(--color-text-muted);
+        }
+        
+        .pricing-feature.disabled::before {
+            content: '×';
+            background: var(--color-border);
+        }
+        
+        .pricing-cta {
+            width: 100%;
+        }
+        
+        .pricing-note {
+            text-align: center;
+            margin-top: var(--space-2xl);
+            padding: var(--space-lg);
+            background: var(--color-primary-subtle);
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+        
+        .pricing-note strong {
+            color: var(--color-primary);
+        }
+        
+        /* ===== Testimonials ===== */
+        .testimonials {
+            background: var(--color-bg-primary);
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-xl);
+        }
+        
+        .testimonial-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-normal);
+        }
+        
+        .testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .testimonial-stars {
+            color: #FFB800;
+            font-size: 18px;
+            margin-bottom: var(--space-md);
+        }
+        
+        .testimonial-text {
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-xl);
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .testimonial-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-hero);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .testimonial-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        .testimonial-info p {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+        
+        /* ===== CTA Section ===== */
+        .cta {
+            position: relative;
+            background: var(--gradient-hero);
+            padding: var(--space-4xl) 0;
+            overflow: hidden;
+        }
+        
+        .cta::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        
+        .cta-container {
+            position: relative;
+            text-align: center;
+            color: white;
+        }
+        
+        .cta-title {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: var(--space-md);
+        }
+        
+        .cta-subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: var(--space-xl);
+        }
+        
+        .cta-button {
+            background: white;
+            color: var(--color-primary);
+            font-size: 16px;
+            padding: 16px 32px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .cta-note {
+            margin-top: var(--space-lg);
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        /* ===== Footer ===== */
+        .footer {
+            background: var(--color-accent);
+            color: white;
+            padding: var(--space-4xl) 0 var(--space-2xl);
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr repeat(3, 1fr);
+            gap: var(--space-3xl);
+            margin-bottom: var(--space-3xl);
+        }
+        
+        .footer-brand p {
+            margin-top: var(--space-md);
+            font-size: 14px;
+            opacity: 0.7;
+            line-height: 1.7;
+        }
+        
+        .footer-social {
+            display: flex;
+            gap: var(--space-md);
+            margin-top: var(--space-lg);
+        }
+        
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .footer-social a:hover {
+            background: var(--color-primary);
+        }
+        
+        .footer-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: var(--space-lg);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+        
+        .footer-link {
+            font-size: 14px;
+            opacity: 0.7;
+            transition: opacity var(--transition-fast);
+        }
+        
+        .footer-link:hover {
+            opacity: 1;
+        }
+        
+        .footer-bottom {
+            padding-top: var(--space-2xl);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            opacity: 0.6;
+        }
+        
+        /* ===== Animations ===== */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* ===== Responsive ===== */
+        @media (max-width: 991px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .hero-title {
+                font-size: 48px;
+            }
+            
+            .hero-features {
+                align-items: center;
+            }
+            
+            .hero-actions {
+                justify-content: center;
+            }
+            
+            .hero-visual {
+                order: -1;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .use-cases-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .steps::before {
+                display: none;
+            }
+            
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+            
+            .pricing-card.featured {
+                order: -1;
+            }
+            
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .social-proof-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .nav-toggle {
+                display: flex;
+            }
+            
+            .hero {
+                padding: 120px 0 60px;
+            }
+            
+            .hero-title {
+                font-size: 36px;
+            }
+            
+            .hero-subtitle {
+                font-size: 18px;
+            }
+            
+            .section-title {
+                font-size: 28px;
+            }
+            
+            .steps {
+                grid-template-columns: 1fr;
+            }
+            
+            .social-proof-stats {
+                grid-template-columns: 1fr;
+                gap: var(--space-lg);
+            }
+            
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-xl);
+            }
+            
+            .footer-bottom {
+                flex-direction: column;
+                gap: var(--space-md);
+                text-align: center;
+            }
+            
+            .cta-title {
+                font-size: 28px;
+            }
+        }
+        
+        /* ===== Mobile Menu ===== */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 999;
+            padding: 80px var(--space-lg) var(--space-lg);
+        }
+        
+        .mobile-menu.active {
+            display: block;
+        }
+        
+        .mobile-menu-links {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .mobile-menu-link {
+            font-size: 20px;
+            font-weight: 600;
+            padding: var(--space-md) 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .mobile-menu-actions {
+            margin-top: var(--space-xl);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .mobile-menu-actions .btn {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="container nav-container">
+            <a href="#" class="nav-logo">
+                <span>GBD</span>
+                <span style="color: var(--color-text-primary); font-weight: 500; font-size: 18px;">GeBuDiu</span>
+            </a>
+            
+            <div class="nav-links">
+                <a href="#features" class="nav-link">功能特色</a>
+                <a href="#use-cases" class="nav-link">使用場景</a>
+                <a href="#pricing" class="nav-link">價格</a>
+                <a href="#testimonials" class="nav-link">案例</a>
+            </div>
+            
+            <div class="nav-actions">
+                <a href="#" class="btn btn-ghost">登入</a>
+                <a href="#cta" class="btn btn-primary">免費試用</a>
+            </div>
+            
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-links">
+            <a href="#features" class="mobile-menu-link">功能特色</a>
+            <a href="#use-cases" class="mobile-menu-link">使用場景</a>
+            <a href="#pricing" class="mobile-menu-link">價格</a>
+            <a href="#testimonials" class="mobile-menu-link">案例</a>
+        </div>
+        <div class="mobile-menu-actions">
+            <a href="#" class="btn btn-secondary">登入</a>
+            <a href="#cta" class="btn btn-primary">免費試用</a>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="container hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">新用戶送 1000 字免費額度</div>
+                <h1 class="hero-title">
+                    「越翻譯，<em>格式越精準</em>」
+                </h1>
+                <p class="hero-subtitle">
+                    專為外貿人打造的 AI 翻譯神器<br>
+                    DOCX 格式原樣保留，術語統一專業，越用越省錢
+                </p>
+                
+                <div class="hero-features">
+                    <div class="hero-feature">格式原樣保留，無需重新排版</div>
+                    <div class="hero-feature">翻譯記憶庫，越用越省錢</div>
+                    <div class="hero-feature">自動識別領域，術語統一專業</div>
+                </div>
+                
+                <div class="hero-actions">
+                    <a href="#cta" class="btn btn-primary btn-large">🚀 免費開始翻譯</a>
+                    <a href="#how-it-works" class="btn btn-secondary btn-large">👀 看演示</a>
+                </div>
+                
+                <p class="hero-hint">
+                    💡 無需信用卡，<strong>30 秒</strong>即可開始使用
+                </p>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="hero-doc">
+                    <div class="hero-doc-header">
+                        <div class="hero-doc-icon">📄</div>
+                        <div>
+                            <div class="hero-doc-title">產品目錄_2026.docx</div>
+                            <div class="hero-doc-meta">12 頁 · 3,250 字</div>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-progress">
+                        <div class="hero-progress-label">
+                            <span>翻譯進度</span>
+                            <span>65%</span>
+                        </div>
+                        <div class="hero-progress-bar">
+                            <div class="hero-progress-fill"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-doc-content">
+                        <div class="hero-doc-line"></div>
+                        <div class="hero-doc-line"></div>
+                        <div class="hero-doc-line"></div>
+                        <div class="hero-doc-line"></div>
+                    </div>
+                    
+                    <div class="hero-status">
+                        <div class="hero-status-dot"></div>
+                        <span>🤖 AI 正在逐句理解語境，保持術語一致性...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="social-proof">
+        <div class="container">
+            <div class="social-proof-header">
+                <p class="social-proof-title">已有 <strong>2,000+</strong> 家外貿企業信賴使用</p>
+            </div>
+            
+            <div class="social-proof-logos">
+                <div class="social-proof-logo" style="font-size: 24px; font-weight: 700; color: #333;">🏭 華東機械</div>
+                <div class="social-proof-logo" style="font-size: 24px; font-weight: 700; color: #333;">🌐 環球貿易</div>
+                <div class="social-proof-logo" style="font-size: 24px; font-weight: 700; color: #333;">📦 跨境達人</div>
+                <div class="social-proof-logo" style="font-size: 24px; font-weight: 700; color: #333;">⚙️ 精密科技</div>
+                <div class="social-proof-logo" style="font-size: 24px; font-weight: 700; color: #333;">🚢 海運集團</div>
+            </div>
+            
+            <div class="social-proof-stats">
+                <div class="social-proof-stat">
+                    <div class="social-proof-stat-value" data-count="2000">0</div>
+                    <div class="social-proof-stat-label">企業用戶</div>
+                </div>
+                <div class="social-proof-stat">
+                    <div class="social-proof-stat-value" data-count="500">0</div>
+                    <div class="social-proof-stat-label">萬字翻譯量</div>
+                </div>
+                <div class="social-proof-stat">
+                    <div class="social-proof-stat-value" data-count="98">0</div>
+                    <div class="social-proof-stat-label">% 滿意度</div>
+                </div>
+                <div class="social-proof-stat">
+                    <div class="social-proof-stat-value" data-count="60">0</div>
+                    <div class="social-proof-stat-label">% 成本節省</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">核心功能</span>
+                <h2 class="section-title">不只是翻譯，更是你的專業翻譯助手</h2>
+                <p class="section-subtitle">四大核心技術，讓每一次翻譯都更精準、更省錢</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">📄</div>
+                    <h3 class="feature-title">DOCX 格式完美保留</h3>
+                    <p class="feature-desc">字體、顏色、表格、標題樣式原封不動，再也不用翻譯完重新排版。支持複雜表格、嵌套列表、頁眉頁腳。</p>
+                    <span class="feature-tag">核心功能</span>
+                    <a href="#" class="feature-link">了解更多 →</a>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon blue">🧠</div>
+                    <h3 class="feature-title">智能翻譯記憶庫</h3>
+                    <p class="feature-desc">用過的句子自動記憶，下次翻譯直接復用。重複內容不再花錢，成本直降 60%。越用越省錢！</p>
+                    <span class="feature-tag">省錢利器</span>
+                    <a href="#" class="feature-link">了解更多 →</a>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon green">🏷️</div>
+                    <h3 class="feature-title">AI 自動領域檢測</h3>
+                    <p class="feature-desc">自動識別法律、醫療、電子、機械等專業領域，智能匹配對應術語庫，讓翻譯更專業、更精準。</p>
+                    <span class="feature-tag">專業保障</span>
+                    <a href="#" class="feature-link">了解更多 →</a>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon purple">📚</div>
+                    <h3 class="feature-title">專業術語管理</h3>
+                    <p class="feature-desc">自定義術語庫，整篇文檔術語統一。再也不怕前面翻「合同」後面變「協議」，專業度拉滿。</p>
+                    <span class="feature-tag">一致性</span>
+                    <a href="#" class="feature-link">了解更多 →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section class="section use-cases" id="use-cases">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">使用場景</span>
+                <h2 class="section-title">外貿人都在這樣用 GBD</h2>
+                <p class="section-subtitle">無論是合同、目錄還是電商 Listing，都能輕鬆搞定</p>
+            </div>
+            
+            <div class="use-cases-tabs">
+                <button class="use-cases-tab active" data-tab="contract">外貿合同</button>
+                <button class="use-cases-tab" data-tab="catalog">產品目錄</button>
+                <button class="use-cases-tab" data-tab="ecommerce">跨境電商</button>
+                <button class="use-cases-tab" data-tab="technical">技術文檔</button>
+                <button class="use-cases-tab" data-tab="marketing">市場營銷</button>
+            </div>
+            
+            <div class="use-cases-content">
+                <div class="use-case-text">
+                    <div class="use-case-panel active" data-panel="contract">
+                        <h3>外貿合同翻譯，精準到標點</h3>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">你的痛點</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">合同條款翻譯要精準，一個詞可能決定百萬訂單</div>
+                                <div class="use-case-item">法律術語不能錯，liability 到底譯「責任」還是「賠償責任」</div>
+                                <div class="use-case-item">格式要正式規範，客戶一眼就能看出專不專業</div>
+                            </div>
+                        </div>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">GBD 解決方案</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">✓ 自動識別法律領域，加載專業法律術語庫</div>
+                                <div class="use-case-item">✓ 嚴謹法律用語翻譯，準確率 99.2%</div>
+                                <div class="use-case-item">✓ 保留合同格式，輸出即可直接用</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="use-case-panel" data-panel="catalog" style="display: none;">
+                        <h3>產品目錄翻譯，效率提升 5 倍</h3>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">你的痛點</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">SKU 太多，翻譯週期長，錯過展會檔期</div>
+                                <div class="use-case-item">重複內容多，每次都要重新翻譯</div>
+                                <div class="use-case-item">規格參數要準確，不能出錯</div>
+                            </div>
+                        </div>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">GBD 解決方案</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">✓ TM 自動匹配重複內容，成本降低 70%</div>
+                                <div class="use-case-item">✓ 批量處理，一個上午搞定 200 個 SKU</div>
+                                <div class="use-case-item">✓ 技術術語統一，規格參數精準</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="use-case-panel" data-panel="ecommerce" style="display: none;">
+                        <h3>跨境電商 Listing，快速上架</h3>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">你的痛點</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">平台規則多，關鍵詞布局不能亂</div>
+                                <div class="use-case-item">要符合本地語言習慣，不能直譯</div>
+                                <div class="use-case-item">更新頻率高，翻譯跟不上運營節奏</div>
+                            </div>
+                        </div>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">GBD 解決方案</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">✓ 營銷領域優化，保留核心關鍵詞</div>
+                                <div class="use-case-item">✓ 本地化適配，轉化率提升 15%</div>
+                                <div class="use-case-item">✓ 快速迭代，上架速度提升 3 倍</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="use-case-panel" data-panel="technical" style="display: none;">
+                        <h3>技術文檔翻譯，專業準確</h3>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">你的痛點</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">專業術語多，外行根本看不懂</div>
+                                <div class="use-case-item">格式複雜，有圖表、代碼、公式</div>
+                                <div class="use-case-item">準確性要求極高，不能出錯</div>
+                            </div>
+                        </div>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">GBD 解決方案</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">✓ 技術領域模型，準確率 98.5%</div>
+                                <div class="use-case-item">✓ 表格代碼保留，格式不亂</div>
+                                <div class="use-case-item">✓ 術語庫定制，團隊統一標準</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="use-case-panel" data-panel="marketing" style="display: none;">
+                        <h3>市場營銷翻譯，本地化到位</h3>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">你的痛點</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">營銷文案要接地氣，直譯沒感覺</div>
+                                <div class="use-case-item">文化差異大，同樣的話效果不同</div>
+                                <div class="use-case-item">創意表達難，AI 翻譯太生硬</div>
+                            </div>
+                        </div>
+                        
+                        <div class="use-case-section">
+                            <div class="use-case-section-title">GBD 解決方案</div>
+                            <div class="use-case-list">
+                                <div class="use-case-item">✓ 營銷風格適配，文案更有感染力</div>
+                                <div class="use-case-item">✓ 本地化優化，貼近目標市場</div>
+                                <div class="use-case-item">✓ 情感保留，本地滿意度提升 40%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="use-case-visual">
+                    <div class="use-case-preview">
+                        <div class="use-case-preview-header">
+                            <div style="font-weight: 600;">翻譯質量報告</div>
+                            <div style="font-size: 13px; opacity: 0.8;">GeBuDiu AI 分析</div>
+                        </div>
+                        <div class="use-case-preview-body">
+                            <div class="use-case-preview-row">
+                                <span class="use-case-preview-label">識別領域</span>
+                                <span class="use-case-preview-value" id="preview-domain">法律</span>
+                            </div>
+                            <div class="use-case-preview-row">
+                                <span class="use-case-preview-label">術語一致性</span>
+                                <span class="use-case-preview-value">100%</span>
+                            </div>
+                            <div class="use-case-preview-row">
+                                <span class="use-case-preview-label">格式保留率</span>
+                                <span class="use-case-preview-value">98.5%</span>
+                            </div>
+                            <div class="use-case-preview-row">
+                                <span class="use-case-preview-label">TM 命中率</span>
+                                <span class="use-case-preview-value">67%</span>
+                            </div>
+                            <div class="use-case-preview-row">
+                                <span class="use-case-preview-label">預計節省成本</span>
+                                <span class="use-case-preview-value" style="color: var(--color-primary);">¥156</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">使用流程</span>
+                <h2 class="section-title">四步搞定，簡單到不可思議</h2>
+                <p class="section-subtitle">無需學習成本，上傳即翻譯</p>
+            </div>
+            
+            <div class="steps">
+                <div class="step animate-on-scroll">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">📤</div>
+                    <h3 class="step-title">上傳文檔</h3>
+                    <p class="step-desc">拖拽或選擇 DOCX 文件<br>支持 10MB 以內</p>
+                    <div class="step-time">⚡ 10 秒</div>
+                </div>
+                
+                <div class="step animate-on-scroll">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🔍</div>
+                    <h3 class="step-title">AI 分析</h3>
+                    <p class="step-desc">自動識別領域<br>分析格式結構、加載術語庫</p>
+                    <div class="step-time">⚡ 20 秒</div>
+                </div>
+                
+                <div class="step animate-on-scroll">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">🤖</div>
+                    <h3 class="step-title">智能翻譯</h3>
+                    <p class="step-desc">DeepSeek AI 翻譯<br>TM 匹配 + 術語替換</p>
+                    <div class="step-time">⏱️ 3-8 分鐘</div>
+                </div>
+                
+                <div class="step animate-on-scroll">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">📥</div>
+                    <h3 class="step-title">下載使用</h3>
+                    <p class="step-desc">格式完美保留的譯文<br>即刻可用</p>
+                    <div class="step-time">⚡ 5 秒</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="section pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">價格方案</span>
+                <h2 class="section-title">選擇適合你的方案</h2>
+                <p class="section-subtitle">無論是個人還是企業，都能找到合適的選擇</p>
+            </div>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card animate-on-scroll">
+                    <div class="pricing-name">免費版</div>
+                    <div class="pricing-desc">體驗試用</div>
+                    <div class="pricing-price">¥0<span>/月</span></div>
+                    <div class="pricing-period">零成本試用</div>
+                    
+                    <div class="pricing-features">
+                        <div class="pricing-feature">1,000 字/月 免費額度</div>
+                        <div class="pricing-feature">基礎格式保留</div>
+                        <div class="pricing-feature">通用領域翻譯</div>
+                        <div class="pricing-feature disabled">翻譯記憶庫</div>
+                        <div class="pricing-feature disabled">術語管理</div>
+                        <div class="pricing-feature disabled">優先處理</div>
+                    </div>
+                    
+                    <button class="btn btn-secondary pricing-cta">免費註冊</button>
+                </div>
+                
+                <div class="pricing-card featured animate-on-scroll">
+                    <div class="pricing-badge">🔥 推薦</div>
+                    <div class="pricing-name">專業版</div>
+                    <div class="pricing-desc">性價比之王</div>
+                    <div class="pricing-price">¥99<span>/月</span></div>
+                    <div class="pricing-period">約 ¥0.002/字，超划算</div>
+                    
+                    <div class="pricing-features">
+                        <div class="pricing-feature">50,000 字/月</div>
+                        <div class="pricing-feature">完整格式保留</div>
+                        <div class="pricing-feature">全部專業領域</div>
+                        <div class="pricing-feature">翻譯記憶庫 TM</div>
+                        <div class="pricing-feature">術語管理</div>
+                        <div class="pricing-feature">優先處理隊列</div>
+                    </div>
+                    
+                    <button class="btn btn-primary pricing-cta">立即升級</button>
+                </div>
+                
+                <div class="pricing-card animate-on-scroll">
+                    <div class="pricing-name">企業版</div>
+                    <div class="pricing-desc">大型團隊</div>
+                    <div class="pricing-price">定製</div>
+                    <div class="pricing-period">按需定價</div>
+                    
+                    <div class="pricing-features">
+                        <div class="pricing-feature">無限翻譯字數</div>
+                        <div class="pricing-feature">優先處理通道</div>
+                        <div class="pricing-feature">專屬客戶成功經理</div>
+                        <div class="pricing-feature">API 接口訪問</div>
+                        <div class="pricing-feature">團隊協作功能</div>
+                        <div class="pricing-feature">SLA 保障</div>
+                    </div>
+                    
+                    <button class="btn btn-secondary pricing-cta">聯繫銷售</button>
+                </div>
+            </div>
+            
+            <div class="pricing-note">
+                💡 <strong>年付享 8 折優惠</strong>，相當於免費 2 個月。所有方案 7 天無理由退款。
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">客戶評價</span>
+                <h2 class="section-title">他們都在用 GBD</h2>
+                <p class="section-subtitle">聽聽外貿同行怎麼說</p>
+            </div>
+            
+            <div class="testimonials-grid">
+                <div class="testimonial-card animate-on-scroll">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">「以前翻譯合同最怕格式亂，現在直接給客戶看，超專業！省下的排版時間可以跟進更多客戶。」</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">👨</div>
+                        <div class="testimonial-info">
+                            <h4>張先生</h4>
+                            <p>某機械出口公司 · 業務經理</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card animate-on-scroll">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">「產品目錄翻譯效率提升 5 倍，一個上午搞定 200 個 SKU。TM 功能太香了，重複內容不用重新付費。」</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">👩</div>
+                        <div class="testimonial-info">
+                            <h4>李女士</h4>
+                            <p>跨境電商賣家 · 亞馬遜大賣</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card animate-on-scroll">
+                    <div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                    <p class="testimonial-text">「團隊術語終於統一了，客戶都說我們專業多了。領域檢測很準，法律文件翻譯得特別到位。」</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">👔</div>
+                        <div class="testimonial-info">
+                            <h4>王經理</h4>
+                            <p>貿易公司 · 業務總監</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta" id="cta">
+        <div class="container cta-container">
+            <h2 class="cta-title">準備好提升你的翻譯效率了嗎？</h2>
+            <p class="cta-subtitle">加入 2,000+ 外貿企業，讓 GBD 成為你的專業翻譯助手</p>
+            <a href="#" class="btn btn-large cta-button">🚀 免費開始使用</a>
+            <p class="cta-note">無需信用卡，註冊即送 1000 字免費額度</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="nav-logo" style="color: white;">
+                        <span>GBD</span>
+                        <span style="font-weight: 500; font-size: 18px;">GeBuDiu</span>
+                    </div>
+                    <p>越翻譯，格式越精準。<br>專為外貿人打造的 AI 翻譯神器。</p>
+                    <div class="footer-social">
+                        <a href="#" aria-label="微信">💬</a>
+                        <a href="#" aria-label="郵箱">✉️</a>
+                        <a href="#" aria-label="電話">📞</a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-title">產品</h4>
+                    <div class="footer-links">
+                        <a href="#features" class="footer-link">功能特色</a>
+                        <a href="#use-cases" class="footer-link">使用場景</a>
+                        <a href="#pricing" class="footer-link">價格方案</a>
+                        <a href="#" class="footer-link">客戶案例</a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-title">資源</h4>
+                    <div class="footer-links">
+                        <a href="#" class="footer-link">幫助中心</a>
+                        <a href="#" class="footer-link">API 文檔</a>
+                        <a href="#" class="footer-link">更新日誌</a>
+                        <a href="#" class="footer-link">隱私政策</a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-title">公司</h4>
+                    <div class="footer-links">
+                        <a href="#" class="footer-link">關於我們</a>
+                        <a href="#" class="footer-link">聯繫我們</a>
+                        <a href="#" class="footer-link">加入我們</a>
+                        <a href="#" class="footer-link">媒體報導</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2026 GeBuDiu. All rights reserved.</p>
+                <p>專注外貿翻譯 · 讓溝通無國界</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Navigation scroll effect
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+        
+        // Mobile menu toggle
+        const navToggle = document.getElementById('navToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        navToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+        });
+        
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('.mobile-menu-link').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('active');
+            });
+        });
+        
+        // Animate on scroll
+        const animateElements = document.querySelectorAll('.animate-on-scroll');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        animateElements.forEach(el => observer.observe(el));
+        
+        // Counter animation
+        const counters = document.querySelectorAll('[data-count]');
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = entry.target;
+                    const count = parseInt(target.dataset.count);
+                    const duration = 2000;
+                    const step = count / (duration / 16);
+                    let current = 0;
+                    
+                    const timer = setInterval(() => {
+                        current += step;
+                        if (current >= count) {
+                            target.textContent = count.toLocaleString();
+                            clearInterval(timer);
+                        } else {
+                            target.textContent = Math.floor(current).toLocaleString();
+                        }
+                    }, 16);
+                    
+                    counterObserver.unobserve(target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        counters.forEach(counter => counterObserver.observe(counter));
+        
+        // Use cases tabs
+        const tabs = document.querySelectorAll('.use-cases-tab');
+        const panels = document.querySelectorAll('.use-case-panel');
+        const previewDomain = document.getElementById('preview-domain');
+        
+        const domainNames = {
+            'contract': '法律',
+            'catalog': '電子商務',
+            'ecommerce': '市場營銷',
+            'technical': '技術',
+            'marketing': '市場營銷'
+        };
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Update tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update panels
+                panels.forEach(panel => {
+                    if (panel.dataset.panel === tabName) {
+                        panel.style.display = 'block';
+                        panel.classList.add('active');
+                    } else {
+                        panel.style.display = 'none';
+                        panel.classList.remove('active');
+                    }
+                });
+                
+                // Update preview
+                if (previewDomain) {
+                    previewDomain.textContent = domainNames[tabName] || '通用';
+                }
+            });
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const headerOffset = 80;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Button click handlers for coming soon
+        document.querySelectorAll('.btn').forEach(btn => {
+            if (!btn.getAttribute('href') || btn.getAttribute('href') === '#') {
+                btn.addEventListener('click', (e) => {
+                    if (!btn.closest('nav') && !btn.classList.contains('nav-toggle')) {
+                        e.preventDefault();
+                        alert('🚀 功能即將上線，敬請期待！\n\n現在註冊可獲得 1000 字免費額度。');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
