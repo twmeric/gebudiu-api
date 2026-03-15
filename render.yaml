@@ -1,14 +1,15 @@
-# Render 部署配置 - 簡化版 (移除 Python 3.14 不兼容的依賴)
-# 注意: Qdrant 功能在本地使用，Render 上只使用 SQLite
+# Render 部署配置
 
 services:
   - type: web
     name: gebudiu-api
     runtime: python
-    plan: starter  # $7/month, 512MB RAM
+    plan: starter
     
-    # 簡化構建 - 只安裝穩定的依賴
-    buildCommand: pip install -r requirements-render.txt
+    # 關鍵: 使用 --no-cache-dir 避免緩存問題
+    buildCommand: |
+      pip install --upgrade pip setuptools wheel --no-cache-dir
+      pip install -r requirements-render.txt --no-cache-dir
     
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
     
@@ -29,8 +30,6 @@ services:
         value: /data/terminology.db
       - key: ENHANCED_MODE
         value: "true"
-      - key: DEPLOYMENT_MODE
-        value: "sqlite_only"
     
     disk:
       name: data-disk
