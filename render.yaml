@@ -4,8 +4,9 @@ services:
     name: gebudiu-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    # 優化內存使用：單 worker + 減少線程 + 增加 timeout
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --threads 2 --max-requests 50 --max-requests-jitter 10 wsgi:app
+    # 優化內存使用：單 worker + 增加 timeout + 減少重啟頻率
+    # timeout 600 秒 = 10 分鐘，足夠處理大文件
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 --max-requests 100 --max-requests-jitter 20 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

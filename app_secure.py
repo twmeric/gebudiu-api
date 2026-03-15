@@ -453,19 +453,19 @@ class DocxProcessor:
         
         return output
     
-    def _create_batches(self, items, max_tokens=2000):
-        """智能分塊 - 基於 token 估算（Render 免費版優化：更小的批次）"""
+    def _create_batches(self, items, max_tokens=1500):
+        """智能分塊 - 基於 token 估算（Render 免費版優化：更小的批次，更快處理）"""
         batches = []
         current_batch = []
         current_tokens = 0
         
         # System prompt + 輸出預留（減少以節省內存）
-        overhead = 300  # 減少 system prompt 開銷
-        max_items_per_batch = 15  # 限制每批最大項目數
+        overhead = 200  # 減少 system prompt 開銷
+        max_items_per_batch = 8  # 減少每批項目數，加快處理速度
         
         for item_id, text in items:
             # 限制單個文本長度，避免內存溢出
-            text = text[:1000] if len(text) > 1000 else text
+            text = text[:800] if len(text) > 800 else text
             
             # 估算：中文字符約 1.5 tokens，加上標記開銷
             est_tokens = len(text) * 1.5 + 10  # +10 for [n] marker
@@ -550,6 +550,9 @@ def get_domains():
 @app.route('/translate', methods=['POST'])
 @limiter.limit("10 per minute")
 def translate():
+    """
+    翻譯文件 - 優化版，支持大文件和超時保護
+    """
     start_time = time.time()
     
     try:
@@ -566,6 +569,11 @@ def translate():
         if not is_valid:
             logger.warning(f"File validation failed: {error_msg}")
             return jsonify({"error": error_msg}), 400
+        
+        # 大文件警告（可能導致超時）
+        file_size_mb = file_info["size"] / 1024 / 1024
+        if file_size_mb > 3:
+            logger.warning(f"Large file ({file_size_mb:.1f}MB), may cause timeout")
         
         translator = TranslationService(domain)
         
@@ -600,6 +608,15 @@ def translate():
         
     except Exception as e:
         logger.error(f"Translation failed: {e}", exc_info=True)
+        error_msg = str(e)
+        
+        # 提供更友好的錯誤信息
+        if "timeout" in error_msg.lower() or "worker" in error_msg.lower():
+            return jsonify({
+                "error": "Processing timeout",
+                "message": "File too large or complex. Please try a smaller file (< 2MB) or contact support."
+            }), 504
+        
         return jsonify({
             "error": "Translation failed",
             "message": "An error occurred. Please try again."
