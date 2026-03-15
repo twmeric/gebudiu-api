@@ -1,12 +1,18 @@
-# Render 部署配置
+# Render 部署配置 - 針對免費版優化
 services:
   - type: web
     name: gebudiu-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 2 --threads 4 wsgi:app
+    # 優化內存使用：單 worker + 減少線程 + 增加 timeout
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --threads 2 --max-requests 50 --max-requests-jitter 10 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DEEPSEEK_API_KEY
         sync: false  # 在 Render Dashboard 手動設置
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # 限制內存使用
+      - key: MALLOC_ARENA_MAX
+        value: "2"

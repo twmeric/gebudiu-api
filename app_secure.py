@@ -243,19 +243,20 @@ def should_translate(text):
     return True
 
 class TranslationService:
-    """批量翻译服务 - 最大化利用 API 算力"""
+    """批量翻译服务 - 內存優化版（針對 Render 512MB）"""
     
     def __init__(self, domain="general"):
         self.domain = domain
         self.prompt = PROMPTS.get(domain, PROMPTS["general"])
         self.stats = {"api_calls": 0, "cache_hits": 0, "tokens_saved": 0}
     
-    def translate_batch(self, texts):
+    def translate_batch(self, texts, max_retries=2):
         """
-        批量翻译 - 一次 API 调用处理多个文本
+        批量翻译 - 內存優化，減少 tokens 使用
         
         Args:
             texts: list of (id, text) tuples
+            max_retries: 最大重試次數
         
         Returns:
             dict: {id: translated_text}
@@ -282,58 +283,59 @@ class TranslationService:
         if not to_translate:
             return results
         
-        # 2. 构建批量翻译请求
-        batch_text = "\n---\n".join([f"[{i}] {text}" for i, (_, text) in enumerate(to_translate)])
+        # 2. 構建批量翻譯請求（簡化 prompt 減少 tokens）
+        batch_text = "\n".join([f"[{i}] {text[:500]}" for i, (_, text) in enumerate(to_translate)])
         
-        try:
-            client = get_deepseek_client()
-            logger.info(f"Batch translating {len(to_translate)} texts (~{len(batch_text)} chars)")
-            
-            batch_prompt = f"""{self.prompt}
+        for attempt in range(max_retries):
+            try:
+                client = get_deepseek_client()
+                logger.info(f"Batch translating {len(to_translate)} texts, attempt {attempt+1}")
+                
+                # 簡化 prompt 減少 token 使用
+                batch_prompt = f"""{self.prompt}
 
-Translate the following numbered texts from Chinese to English.
-Maintain the exact format: return each translation prefixed with its [number].
-
-TEXTS TO TRANSLATE:
+Translate to English (prefix with [number]):
 {batch_text}
 
-Return format:
-[0] English translation of text 0
-[1] English translation of text 1
-..."""
-            
-            response = client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[
-                    {"role": "system", "content": batch_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=4000  # 批量翻译需要更多 tokens
-            )
-            
-            # 3. 解析结果
-            raw_output = response.choices[0].message.content.strip()
-            translations = self._parse_batch_output(raw_output, len(to_translate))
-            
-            # 4. 保存到缓存和结果
-            for i, (item_id, original) in enumerate(to_translate):
-                translated = translations.get(i, original)
-                cache.set(original, self.domain, translated)
-                results[item_id] = translated
-            
-            self.stats["api_calls"] += 1
-            # 估算节省的 token：每个单独请求约 100 tokens 开销
-            self.stats["tokens_saved"] += (len(to_translate) - 1) * 100
-            
-            logger.info(f"Batch translated {len(to_translate)} texts in 1 API call")
-            return results
-            
-        except Exception as e:
-            logger.error(f"Batch translation error: {e}", exc_info=True)
-            # 失败时返回原文
-            for item_id, text in to_translate:
-                results[item_id] = text
-            return results
+Format: [0] Translation"""
+                
+                response = client.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[
+                        {"role": "system", "content": batch_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000,  # 減少 tokens 限制
+                    timeout=60  # 添加超時
+                )
+                
+                # 3. 解析结果
+                raw_output = response.choices[0].message.content.strip()
+                translations = self._parse_batch_output(raw_output, len(to_translate))
+                
+                # 4. 保存到缓存和结果
+                for i, (item_id, original) in enumerate(to_translate):
+                    translated = translations.get(i, original)
+                    cache.set(original, self.domain, translated)
+                    results[item_id] = translated
+                
+                self.stats["api_calls"] += 1
+                logger.info(f"Batch translated {len(to_translate)} texts")
+                return results
+                
+            except Exception as e:
+                logger.error(f"Batch translation attempt {attempt+1} failed: {e}")
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)  # 指數退避
+                else:
+                    # 所有重試都失敗，返回原文
+                    logger.error(f"All retries failed, returning original text")
+                    for item_id, text in to_translate:
+                        results[item_id] = text
+                    return results
+        
+        return results
     
     def _parse_batch_output(self, output, expected_count):
         """解析批量翻译的输出"""
@@ -357,13 +359,16 @@ Return format:
         return translated, is_cached
 
 class DocxProcessor:
-    """DOCX 文档处理器 - 批量翻譯優化版"""
+    """DOCX 文档处理器 - 內存優化版（針對 Render 免費版）"""
     
     def __init__(self, translator):
         self.translator = translator
         self.stats = {"paragraphs": 0, "tables": 0, "cells": 0}
     
     def process(self, file_buffer):
+        """處理 DOCX 文件 - 流式處理減少內存使用"""
+        import gc  # 垃圾回收
+        
         doc = Document(BytesIO(file_buffer))
         
         # 1. 收集所有需要翻譯的段落（帶 ID）
@@ -404,59 +409,74 @@ class DocxProcessor:
         
         logger.info(f"Collected {len(items_to_translate)} items to translate")
         
-        # 2. 智能分塊（每批約 3000-3500 tokens）
-        batches = self._create_batches(items_to_translate, max_tokens=3500)
+        # 2. 智能分塊（每批約 2000 tokens，減少內存使用）
+        batches = self._create_batches(items_to_translate, max_tokens=2000)
         logger.info(f"Split into {len(batches)} batches")
         
-        # 3. 並行批量翻譯（最多 3 個並發）
+        # 3. 串行處理（避免並行導致的內存峰值）
+        # Render 免費版只有 512MB，並行會導致 OOM
         all_results = {}
-        if len(batches) == 1:
-            # 單批次直接處理
-            results = self.translator.translate_batch(batches[0])
-            all_results.update(results)
-        else:
-            # 多批次並行處理
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                future_to_batch = {
-                    executor.submit(self.translator.translate_batch, batch): i 
-                    for i, batch in enumerate(batches)
-                }
-                for future in as_completed(future_to_batch):
-                    batch_idx = future_to_batch[future]
-                    try:
-                        results = future.result()
-                        all_results.update(results)
-                        logger.info(f"Batch {batch_idx+1}/{len(batches)} completed")
-                    except Exception as e:
-                        logger.error(f"Batch {batch_idx+1} failed: {e}")
         
-        # 4. 回填結果
-        for item_id, translated in all_results.items():
-            if item_id in item_map:
-                para = item_map[item_id]
-                original = para.text.strip()
-                if translated != original:
-                    self._apply_translation(para, translated)
+        for batch_idx, batch in enumerate(batches):
+            try:
+                logger.info(f"Processing batch {batch_idx+1}/{len(batches)} ({len(batch)} items)")
+                results = self.translator.translate_batch(batch)
+                all_results.update(results)
+                
+                # 立即回填該批次結果，減少內存佔用
+                for item_id, translated in results.items():
+                    if item_id in item_map:
+                        para = item_map[item_id]
+                        original = para.text.strip()
+                        if translated != original:
+                            self._apply_translation(para, translated)
+                        # 清理已處理的引用
+                        del item_map[item_id]
+                
+                # 強制垃圾回收
+                gc.collect()
+                
+            except Exception as e:
+                logger.error(f"Batch {batch_idx+1} failed: {e}")
+                # 失敗時保留原文
+                for item_id, _ in batch:
+                    if item_id in item_map:
+                        del item_map[item_id]
         
+        # 4. 保存結果
         output = BytesIO()
         doc.save(output)
         output.seek(0)
+        
+        # 清理內存
+        gc.collect()
+        
         return output
     
-    def _create_batches(self, items, max_tokens=3500):
-        """智能分塊 - 基於 token 估算"""
+    def _create_batches(self, items, max_tokens=2000):
+        """智能分塊 - 基於 token 估算（Render 免費版優化：更小的批次）"""
         batches = []
         current_batch = []
         current_tokens = 0
         
-        # System prompt + 輸出預留
-        overhead = 500  # system prompt + JSON 格式開銷
+        # System prompt + 輸出預留（減少以節省內存）
+        overhead = 300  # 減少 system prompt 開銷
+        max_items_per_batch = 15  # 限制每批最大項目數
         
         for item_id, text in items:
+            # 限制單個文本長度，避免內存溢出
+            text = text[:1000] if len(text) > 1000 else text
+            
             # 估算：中文字符約 1.5 tokens，加上標記開銷
             est_tokens = len(text) * 1.5 + 10  # +10 for [n] marker
             
-            if current_tokens + est_tokens + overhead > max_tokens and current_batch:
+            # 檢查是否需要新批次（token 限制或項目數限制）
+            should_new_batch = (
+                current_tokens + est_tokens + overhead > max_tokens or 
+                len(current_batch) >= max_items_per_batch
+            ) and current_batch
+            
+            if should_new_batch:
                 batches.append(current_batch)
                 current_batch = []
                 current_tokens = 0
@@ -467,6 +487,7 @@ class DocxProcessor:
         if current_batch:
             batches.append(current_batch)
         
+        logger.info(f"Created {len(batches)} batches with max {max_items_per_batch} items each")
         return batches
     
     def _apply_translation(self, para, translated):
