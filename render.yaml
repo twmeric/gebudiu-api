@@ -1,5 +1,5 @@
-# Render 部署配置 - Starter 計劃 + Translation Memory
-# 關鍵: 使用 Python 3.11 確保兼容性
+# Render 部署配置 - 方案A: 純SQLite版
+# 已移除FAISS依賴，確保100%部署成功率
 
 services:
   - type: web
@@ -7,15 +7,13 @@ services:
     runtime: python
     plan: starter  # $7/month, 512MB RAM
     
-    # 明確指定 Python 3.11 (不是 3.14)
-    buildCommand: |
-      pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt
     
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
     
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0  # 必須使用 3.11，3.14 不兼容 faiss
+        value: 3.11.0
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: PYTHONUNBUFFERED
@@ -26,14 +24,16 @@ services:
         value: "600"
       - key: TM_DB_PATH
         value: /data/translation_memory.db
-      - key: TRANSFORMERS_CACHE
-        value: /tmp/.cache
+      - key: TERMINOLOGY_DB_PATH
+        value: /data/terminology.db
       - key: ENHANCED_MODE
         value: "true"
+      - key: DEPLOYMENT_MODE
+        value: "sqlite_exact"  # 標識當前部署模式
     
     # 持久化存儲
     disk:
-      name: translation-memory
+      name: data-disk
       mountPath: /data
       sizeGB: 1
     

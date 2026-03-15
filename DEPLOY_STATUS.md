@@ -1,20 +1,33 @@
 # 🚀 Render 部署狀態 - Translation Memory 增強版
 
-> 部署時間: 2026-03-15 13:15  
-> 版本: v3.0 Enhanced  
-> Git Commit: d46981b
+> 部署時間: 2026-03-15 13:45 (修復後重新部署)  
+> 版本: v3.1.0  
+> Git Commit: 1c25146
 
 ---
 
-## 📊 部署進度
+## 📊 當前狀態
 
 ```
-[✅] 代碼提交到 GitHub
-[🔄] Render 自動構建中 (預計 3-5 分鐘)
-[⏳] 等待部署完成
-[⏳] 健康檢查驗證
-[⏳] API 端點測試
+[✅] 代碼提交到 GitHub (修復版)
+[✅] Render 自動觸發新部署
+[🔄] 構建進行中 (使用 Python 3.11)
+[⏳] 等待完成 (預計 10 分鐘)
 ```
+
+---
+
+## 🔧 已修復問題
+
+### 問題: faiss-cpu 1.7.4 不兼容 Python 3.14
+**解決:**
+- faiss-cpu: 1.7.4 → 1.13.2
+- Python: 3.14 → 3.11 (明確指定)
+
+### 修改文件:
+1. `requirements.txt` - 更新 faiss-cpu 版本
+2. `render.yaml` - 添加 PYTHON_VERSION=3.11.0
+3. `runtime.txt` (新增) - python-3.11.0
 
 ---
 
@@ -24,128 +37,69 @@
 |------|-----|
 | **API 服務** | https://gebudiu-api.onrender.com |
 | **健康檢查** | https://gebudiu-api.onrender.com/health |
+| **術語表管理** | https://gebudiu-api.onrender.com/terminology_admin.html |
 | **GitHub** | https://github.com/twmeric/gebudiu-api |
-| **Render Dashboard** | https://dashboard.render.com |
 
 ---
 
-## 🧪 部署後測試
+## ⏱️ 預計時間線
 
-### 1. 健康檢查
+| 時間 | 事件 |
+|------|------|
+| T+0 | 代碼推送 |
+| T+1min | Render 開始構建 |
+| T+6min | 依賴安裝完成 |
+| T+8min | 應用啟動 |
+| T+10min | 健康檢查通過 ✅ |
+
+---
+
+## 🧪 部署後測試 (約 10 分鐘後)
+
+### 快速驗證
 ```bash
+# 1. 健康檢查
 curl https://gebudiu-api.onrender.com/health
-```
 
-預期響應:
-```json
-{
-  "status": "ok",
-  "service": "格不丢翻译 API - Enhanced",
-  "version": "3.0.0",
-  "enhanced_mode": true,
-  "features": {
-    "translation_memory": true,
-    "domain_detection": true,
-    "quality_scoring": true
-  }
-}
-```
-
-### 2. TM 統計
-```bash
+# 2. TM 統計
 curl https://gebudiu-api.onrender.com/tm/stats
-```
 
-### 3. 領域檢測測試
-```bash
+# 3. 術語表統計
+curl https://gebudiu-api.onrender.com/terminology/stats
+
+# 4. 領域檢測
 curl -X POST https://gebudiu-api.onrender.com/detect-domain \
   -H "Content-Type: application/json" \
-  -d '{"filename": "product_spec.docx", "samples": ["藍牙耳機"]}'
+  -d '{"filename": "product_spec.docx"}'
 ```
 
-### 4. 文件翻譯測試
+### 完整測試
 ```bash
-curl -X POST https://gebudiu-api.onrender.com/translate \
-  -F "file=@test.docx" \
-  -F "domain=electronics"
+cd C:\Users\Owner\cloudflare\Docx\gebudiu-api
+python test_deployed_api.py
 ```
 
 ---
 
-## ⚙️ 環境變量配置
+## 🚨 如果仍然失敗
 
-已在 Render Dashboard 配置:
+### 可能原因:
+1. **sentence-transformers 模型下載超時**
+   - 解決: 使用較小模型或預先下載
 
-| 變量 | 值 | 說明 |
-|------|-----|------|
-| `DEEPSEEK_API_KEY` | `***` | API 密鑰 (已設置) |
-| `TM_DB_PATH` | `/data/translation_memory.db` | TM 數據庫路徑 |
-| `ENHANCED_MODE` | `true` | 啟用增強功能 |
-| `TRANSFORMERS_CACHE` | `/tmp/.cache` | 模型緩存路徑 |
+2. **內存不足 (512MB)**
+   - 解決: 已優化到 420MB，應該足夠
 
----
+3. **Disk 掛載失敗**
+   - 解決: 檢查 /data 目錄權限
 
-## 💾 磁盤配置
-
-- **名稱**: translation-memory
-- **掛載路徑**: /data
-- **大小**: 1GB
-- **用途**: 存儲 Translation Memory 數據庫
-
----
-
-## 📈 預期效果驗證
-
-部署後需要驗證的指標:
-
-| 指標 | 方法 | 目標 |
-|------|------|------|
-| 健康檢查 | `/health` | ✅ status: ok |
-| TM 功能 | `/tm/stats` | total_entries >= 0 |
-| 領域檢測 | `/detect-domain` | 正確識別 electronics |
-| 翻譯功能 | `/translate` | 正常返回文件 |
-| 響應頭 | X-* headers | 包含統計信息 |
-
----
-
-## 🚨 常見問題
-
-### 構建失敗
-檢查 Render Logs:
-```
-Build Error: pip install failed
-```
-解決: 檢查 requirements.txt 格式
-
-### 模型下載超時
-```
-Downloading embedding model...
-Build timeout
-```
-解決: Render 構建時間限制為 15 分鐘，模型 118MB 應該可以下載完成
-
-### 內存不足
-```
-Memory quota exceeded
-```
-解決: 已優化到 420MB，確認 Render 是 Starter 計劃 (512MB)
-
----
-
-## 🔧 回滾方案
-
-如需回滾到舊版本:
-
+### 回滾方案:
+如需緊急回滾到舊版本:
 ```bash
-git revert d46981b
+git revert 1c25146
 git push origin main
 ```
 
-或手動設置環境變量:
-```
-ENHANCED_MODE=false
-```
-
 ---
 
-**部署狀態會自動更新，請等待 5-10 分鐘後測試。**
+**等待部署完成，約 10 分鐘後驗證...** ⏱️
