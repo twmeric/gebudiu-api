@@ -5,14 +5,12 @@ services:
     runtime: python
     plan: starter
     
-    buildCommand: |
-      pip install --upgrade pip==24.0 setuptools==69.5.1 wheel==0.43.0 &&
-      pip install -r requirements-render.txt
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements-render.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 wsgi:app
     
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "3.11"
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: PYTHONUNBUFFERED
@@ -25,8 +23,6 @@ services:
         value: /data/terminology.db
       - key: ENHANCED_MODE
         value: "true"
-      - key: BUILD_CACHE_BUST
-        value: "v3-numpy-fix"
     
     disk:
       name: data-disk
