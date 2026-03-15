@@ -113,14 +113,35 @@ class FormatDiffReport:
 class FormatLearningEngine:
     """格式自學習引擎 - GBD 核心 USP"""
     
-    def __init__(self, db_path: str = "/data/format_learning.db"):
+    def __init__(self, db_path: str = None):
+        # 優先從環境變量獲取路徑，默認使用 /data
+        if db_path is None:
+            db_path = os.getenv("FORMAT_LEARNING_DB_PATH", "/data/format_learning.db")
+        
         self.db_path = db_path
+        
+        # 確保目錄存在
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+            except Exception as e:
+                logger.warning(f"Failed to create db directory {db_dir}: {e}")
+                # 回退到當前目錄
+                self.db_path = "format_learning.db"
+        
         self._init_db()
-        logger.info(f"FormatLearningEngine initialized: {db_path}")
+        logger.info(f"FormatLearningEngine initialized: {self.db_path}")
     
     def _init_db(self):
         """初始化數據庫"""
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        try:
+            db_dir = os.path.dirname(self.db_path)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
+        except Exception as e:
+            logger.warning(f"Failed to create directory: {e}, using current directory")
+            self.db_path = "format_learning.db"
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
