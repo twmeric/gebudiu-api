@@ -1,6 +1,6 @@
-# Render 部署用依賴 (簡化版)
-# 注意: 移除了 Python 3.14 不兼容的 sentence-transformers 和 qdrant-client
-# Qdrant 功能只在本地開發環境使用
+# Render deployment dependencies (lightweight)
+# Note: Removed problematic packages for Python 3.14 compatibility
+# Qdrant features available in local development only
 
 flask==3.0.0
 flask-cors==4.0.0

@@ -1,17 +1,12 @@
-# Render 部署配置
-
+# Render deployment config - SQLite-only mode for production
 services:
   - type: web
     name: gebudiu-api
     runtime: python
     plan: starter
     
-    # 關鍵: 使用 --no-cache-dir 避免緩存問題
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel --no-cache-dir
-      pip install -r requirements-render.txt --no-cache-dir
-    
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements-render.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 wsgi:app
     
     envVars:
       - key: PYTHON_VERSION
@@ -22,8 +17,6 @@ services:
         value: "1"
       - key: MALLOC_ARENA_MAX
         value: "2"
-      - key: GUNICORN_TIMEOUT
-        value: "600"
       - key: TM_DB_PATH
         value: /data/translation_memory.db
       - key: TERMINOLOGY_DB_PATH
