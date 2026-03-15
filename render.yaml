@@ -5,7 +5,10 @@ services:
     runtime: python
     plan: starter
     
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements-render.txt
+    buildCommand: |
+      echo "Build cache version: 2" && \
+      pip install --upgrade pip setuptools wheel && \
+      pip install -r requirements-render.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 wsgi:app
     
     envVars:
@@ -23,6 +26,8 @@ services:
         value: /data/terminology.db
       - key: ENHANCED_MODE
         value: "true"
+      - key: BUILD_CACHE_BUST
+        value: "v2-20260315"
     
     disk:
       name: data-disk
