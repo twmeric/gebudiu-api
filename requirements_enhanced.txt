@@ -1,0 +1,17 @@
+# 基礎依賴
+flask==3.0.0
+flask-cors==4.0.0
+flask-limiter==3.5.0
+python-docx==0.8.11
+openpyxl==3.1.2
+openai==1.12.0
+python-dotenv==1.0.0
+gunicorn==21.2.0
+
+# Translation Memory 依賴
+faiss-cpu==1.7.4
+sentence-transformers==2.3.1
+numpy==1.24.3
+
+# 可選: 用於更高效的相似度計算
+rapidfuzz==3.6.1
