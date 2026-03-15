@@ -1,19 +1,24 @@
-# Render 部署配置 - 針對免費版優化
+# Render 部署配置 - Starter 計劃優化
 services:
   - type: web
     name: gebudiu-api
     runtime: python
+    plan: starter  # 明確指定 Starter 計劃
     buildCommand: pip install -r requirements.txt
-    # 優化內存使用：單 worker + 增加 timeout + 減少重啟頻率
-    # timeout 600 秒 = 10 分鐘，足夠處理大文件
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 --max-requests 100 --max-requests-jitter 20 wsgi:app
+    # 關鍵：超長 timeout 600 秒 = 10 分鐘，處理大文件
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DEEPSEEK_API_KEY
-        sync: false  # 在 Render Dashboard 手動設置
+        sync: false
       - key: PYTHONUNBUFFERED
         value: "1"
-      # 限制內存使用
       - key: MALLOC_ARENA_MAX
         value: "2"
+      - key: GUNICORN_TIMEOUT
+        value: "600"
+    # 健康檢查
+    healthCheckPath: /health
+    # 自動重啟設置
+    autoDeploy: true
