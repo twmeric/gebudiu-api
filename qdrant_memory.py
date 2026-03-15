@@ -3,6 +3,9 @@
 """
 Qdrant 向量搜索 - 方案E實現
 提供模糊匹配功能，與SQLite精確匹配形成兩級緩存
+
+注意: 此模塊在 Render 上可能不可用（Python 3.14 構建問題）
+只在本地開發環境使用
 """
 
 import os
@@ -12,6 +15,15 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# 檢查依賴可用性
+try:
+    from qdrant_client import QdrantClient
+    from qdrant_client.models import Distance, VectorParams
+    QDRANT_AVAILABLE = True
+except ImportError:
+    QDRANT_AVAILABLE = False
+    logger.warning("qdrant-client not installed, Qdrant TM disabled")
 
 @dataclass
 class QdrantEntry:
@@ -64,9 +76,11 @@ class QdrantTranslationMemory:
     
     def _init_client(self):
         """初始化 Qdrant 客戶端"""
-        try:
-            from qdrant_client import QdrantClient
+        if not QDRANT_AVAILABLE:
+            logger.error("qdrant-client not installed")
+            return
             
+        try:
             self._client = QdrantClient(
                 url=self.url,
                 api_key=self.api_key,
@@ -76,9 +90,9 @@ class QdrantTranslationMemory:
             # 確保集合存在
             self._ensure_collections()
             
-        except ImportError:
-            logger.error("qdrant-client not installed")
-            raise
+        except Exception as e:
+            logger.error(f"Failed to initialize Qdrant client: {e}")
+            self._client = None
     
     def _init_embedder(self):
         """延遲初始化嵌入模型"""

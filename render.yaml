@@ -1,5 +1,5 @@
-# Render 部署配置 - 方案A + 方案E
-# 修復: Python 3.14 構建隔離問題
+# Render 部署配置 - 簡化版 (移除 Python 3.14 不兼容的依賴)
+# 注意: Qdrant 功能在本地使用，Render 上只使用 SQLite
 
 services:
   - type: web
@@ -7,12 +7,8 @@ services:
     runtime: python
     plan: starter  # $7/month, 512MB RAM
     
-    # 關鍵修復: 先安裝構建工具，再安裝其他依賴
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install qdrant-client==1.13.3 --no-build-isolation
-      pip install sentence-transformers==2.3.1 --no-build-isolation
-      pip install -r requirements.txt
+    # 簡化構建 - 只安裝穩定的依賴
+    buildCommand: pip install -r requirements-render.txt
     
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
     
@@ -34,13 +30,7 @@ services:
       - key: ENHANCED_MODE
         value: "true"
       - key: DEPLOYMENT_MODE
-        value: "sqlite_qdrant"
-      
-      # 方案E: Qdrant配置
-      - key: QDRANT_URL
-        sync: false
-      - key: QDRANT_API_KEY
-        sync: false
+        value: "sqlite_only"
     
     disk:
       name: data-disk
