@@ -1,0 +1,160 @@
+name: Auto Deploy & Fix
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-and-monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Trigger Render Deploy
+        run: |
+          echo "🚀 Push 已觸發 Render 自動部署"
+          echo "等待 60 秒讓 Render 開始構建..."
+          sleep 60
+          
+      - name: Monitor Deploy Status
+        id: monitor
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_NAME: gebudiu-api
+        run: |
+          echo "⏳ 監控部署狀態..."
+          
+          MAX_RETRIES=20
+          RETRY=0
+          
+          while [ $RETRY -lt $MAX_RETRIES ]; do
+            RETRY=$((RETRY + 1))
+            echo "檢查 #$RETRY / $MAX_RETRIES"
+            
+            # 獲取服務 ID
+            SERVICE_RESPONSE=$(curl -s -H "Accept: application/json" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services?limit=20")
+            
+            SERVICE_ID=$(echo "$SERVICE_RESPONSE" | jq -r ".[] | select(.service.name == \"$SERVICE_NAME\") | .service.id")
+            
+            if [ -z "$SERVICE_ID" ]; then
+              echo "❌ 找不到服務: $SERVICE_NAME"
+              exit 1
+            fi
+            
+            echo "服務 ID: $SERVICE_ID"
+            
+            # 獲取最新部署
+            DEPLOY_RESPONSE=$(curl -s -H "Accept: application/json" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services/$SERVICE_ID/deploys?limit=1")
+            
+            DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.status')
+            DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.id')
+            
+            echo "部署狀態: $DEPLOY_STATUS"
+            
+            case "$DEPLOY_STATUS" in
+              "live")
+                echo "✅ 部署成功!"
+                echo "deploy_status=success" >> $GITHUB_OUTPUT
+                exit 0
+                ;;
+              "build_failed")
+                echo "❌ 構建失敗"
+                echo "deploy_status=failed" >> $GITHUB_OUTPUT
+                echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+                exit 1
+                ;;
+              "canceled")
+                echo "⚠️ 部署被取消"
+                exit 1
+                ;;
+              *)
+                echo "⏳ 進行中，30秒後重試..."
+                sleep 30
+                ;;
+            esac
+          done
+          
+          echo "⚠️ 超時，請手動檢查"
+          exit 1
+          
+      - name: Auto-Fix Build Error
+        if: failure() && steps.monitor.outputs.deploy_status == 'failed'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          echo "🔧 嘗試自動修復..."
+          
+          # 獲取部署日誌
+          DEPLOY_ID="${{ steps.monitor.outputs.deploy_id }}"
+          LOGS=$(curl -s -H "Accept: application/json" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            "https://api.render.com/v1/deploys/$DEPLOY_ID/logs")
+          
+          # 檢查 setuptools 錯誤
+          if echo "$LOGS" | grep -q "Cannot import 'setuptools.build_meta'"; then
+            echo "🔧 檢測到 setuptools 構建錯誤，自動修復..."
+            
+            # 檢查並修復 requirements-render.txt
+            if [ -f "requirements-render.txt" ]; then
+              # 移除問題包
+              grep -v "sentence-transformers" requirements-render.txt | \
+              grep -v "qdrant-client" | \
+              grep -v "^torch" | \
+              grep -v "transformers" > requirements-render.txt.tmp
+              mv requirements-render.txt.tmp requirements-render.txt
+              
+              # 更新 render.yaml 使用更嚴格的構建
+              cat > render.yaml << 'EOF'
+# Render 部署配置 - 自動修復版
+services:
+  - type: web
+    name: gebudiu-api
+    runtime: python
+    plan: starter
+    
+    buildCommand: |
+      pip install --upgrade pip==23.3.2 setuptools==69.0.3 wheel==0.42.0 --no-cache-dir
+      pip install -r requirements-render.txt --no-cache-dir
+    
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 wsgi:app
+    
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: TM_DB_PATH
+        value: /data/translation_memory.db
+      - key: ENHANCED_MODE
+        value: "true"
+    
+    disk:
+      name: data-disk
+      mountPath: /data
+      sizeGB: 1
+    
+    healthCheckPath: /health
+    autoDeploy: true
+EOF
+              
+              # 提交修復
+              git config --global user.name "GitHub Actions"
+              git config --global user.email "actions@github.com"
+              git add -A
+              git commit -m "Auto-fix: Remove packages causing Python 3.14 build failure"
+              git push origin main
+              
+              echo "✅ 已推送自動修復，請等待新部署..."
+            fi
+          else
+            echo "⚠️ 未知的構建錯誤，請手動檢查日誌"
+            echo "$LOGS" | tail -100
+          fi
