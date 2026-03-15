@@ -1,6 +1,5 @@
 # Render 部署配置 - 方案A + 方案E
-# 方案A: SQLite精確匹配 (本地)
-# 方案E: Qdrant向量搜索 (外部服務)
+# 修復: Python 3.14 構建隔離問題
 
 services:
   - type: web
@@ -8,7 +7,12 @@ services:
     runtime: python
     plan: starter  # $7/month, 512MB RAM
     
-    buildCommand: pip install -r requirements.txt
+    # 關鍵修復: 先安裝構建工具，再安裝其他依賴
+    buildCommand: |
+      pip install --upgrade pip setuptools wheel
+      pip install qdrant-client==1.13.3 --no-build-isolation
+      pip install sentence-transformers==2.3.1 --no-build-isolation
+      pip install -r requirements.txt
     
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
     
@@ -30,15 +34,14 @@ services:
       - key: ENHANCED_MODE
         value: "true"
       - key: DEPLOYMENT_MODE
-        value: "sqlite_qdrant"  # 方案A+E
+        value: "sqlite_qdrant"
       
-      # 方案E: Qdrant配置 (需要在Render Dashboard中設置)
+      # 方案E: Qdrant配置
       - key: QDRANT_URL
-        sync: false  # 從Dashboard設置
+        sync: false
       - key: QDRANT_API_KEY
-        sync: false  # 從Dashboard設置
+        sync: false
     
-    # 持久化存儲
     disk:
       name: data-disk
       mountPath: /data
