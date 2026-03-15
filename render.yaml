@@ -1,33 +1,13 @@
-# Render deployment config - SQLite-only mode for production
 services:
   - type: web
     name: gebudiu-api
     runtime: python
     plan: starter
-    
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements-render.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 wsgi:app
-    
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
       - key: DEEPSEEK_API_KEY
         sync: false
-      - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: MALLOC_ARENA_MAX
-        value: "2"
-      - key: TM_DB_PATH
-        value: /data/translation_memory.db
-      - key: TERMINOLOGY_DB_PATH
-        value: /data/terminology.db
-      - key: ENHANCED_MODE
-        value: "true"
-    
-    disk:
-      name: data-disk
-      mountPath: /data
-      sizeGB: 1
-    
     healthCheckPath: /health
-    autoDeploy: true
