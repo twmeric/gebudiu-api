@@ -28,6 +28,8 @@ try:
     from enhanced_translation_service import EnhancedTranslationService, TranslationResult
     from translation_memory import TranslationMemory
     from domain_detector import DomainDetector
+    from terminology_manager import TerminologyManager, get_terminology_manager
+    from terminology_api import init_terminology_routes
     ENHANCED_MODE = True
 except ImportError as e:
     ENHANCED_MODE = False
@@ -89,10 +91,11 @@ DOMAINS = {
 # 全局服務實例
 translation_service = None
 translation_memory = None
+terminology_manager = None
 
 def init_services():
     """初始化翻譯服務"""
-    global translation_service, translation_memory
+    global translation_service, translation_memory, terminology_manager
     
     if not ENHANCED_MODE:
         logger.warning("Running in legacy mode (enhanced features disabled)")
@@ -103,14 +106,22 @@ def init_services():
         translation_memory = TranslationMemory()
         logger.info("Translation Memory initialized")
         
+        # 初始化術語表管理器
+        terminology_manager = get_terminology_manager()
+        logger.info("Terminology Manager initialized")
+        
         # 初始化增強翻譯服務
         translation_service = EnhancedTranslationService(
             domain="general",
             use_tm=True,
             tm_threshold=0.85,
-            auto_detect_domain=True
+            auto_detect_domain=True,
+            use_terminology=True
         )
         logger.info("Enhanced Translation Service initialized")
+        
+        # 初始化術語表API路由
+        init_terminology_routes(app, terminology_manager)
         
     except Exception as e:
         logger.error(f"Failed to initialize enhanced services: {e}")
@@ -182,7 +193,8 @@ def health():
         status["features"] = {
             "translation_memory": True,
             "domain_detection": True,
-            "quality_scoring": True
+            "quality_scoring": True,
+            "terminology_management": True
         }
         status["stats"] = translation_service.get_stats_report()
     

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from translation_memory import TranslationMemory, get_translation_memory
 from domain_detector import DomainDetector, DomainPromptEnhancer, get_domain_detector
+from terminology_manager import TerminologyManager, get_terminology_manager
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,8 @@ class EnhancedTranslationService:
     }
     
     def __init__(self, domain: str = "general", use_tm: bool = True, 
-                 tm_threshold: float = 0.85, auto_detect_domain: bool = True):
+                 tm_threshold: float = 0.85, auto_detect_domain: bool = True,
+                 use_terminology: bool = True):
         """
         初始化增強版翻譯服務
         
@@ -61,16 +63,19 @@ class EnhancedTranslationService:
             use_tm: 是否使用Translation Memory
             tm_threshold: TM匹配閾值
             auto_detect_domain: 是否自動檢測領域
+            use_terminology: 是否使用術語表管理
         """
         self.domain = domain
         self.use_tm = use_tm
         self.tm_threshold = tm_threshold
         self.auto_detect_domain = auto_detect_domain
+        self.use_terminology = use_terminology
         
         # 初始化組件
         self.tm = get_translation_memory() if use_tm else None
         self.domain_detector = get_domain_detector()
         self.prompt_enhancer = DomainPromptEnhancer()
+        self.terminology_manager = get_terminology_manager() if use_terminology else None
         
         # 統計
         self.stats = {
@@ -78,10 +83,11 @@ class EnhancedTranslationService:
             "tm_hits": 0,
             "cache_hits": 0,
             "tokens_saved": 0,
-            "domain_switches": 0
+            "domain_switches": 0,
+            "terminology_hits": 0
         }
         
-        logger.info(f"EnhancedTranslationService initialized: domain={domain}, use_tm={use_tm}")
+        logger.info(f"EnhancedTranslationService initialized: domain={domain}, use_tm={use_tm}, use_terminology={use_terminology}")
     
     def detect_domain(self, filename: str, content_samples: List[str] = None) -> str:
         """
@@ -173,12 +179,25 @@ class EnhancedTranslationService:
         
         results = {}
         
+        # 術語預處理 - 保護術語
+        preprocessed_texts = []
+        marker_maps = []
+        
+        for item_id, text in texts:
+            if self.use_terminology and self.terminology_manager:
+                processed, marker_map = self.preprocess_with_terminology(text)
+                preprocessed_texts.append((item_id, processed))
+                marker_maps.append((item_id, marker_map))
+            else:
+                preprocessed_texts.append((item_id, text))
+                marker_maps.append((item_id, {}))
+        
         # 獲取Prompt
         base_prompt = self.PROMPTS.get(domain, self.PROMPTS["general"])
         enhanced_prompt = self.prompt_enhancer.enhance_prompt(base_prompt, domain)
         
-        # 構建批量請求
-        batch_text = "\n".join([f"[{i}] {text[:500]}" for i, (_, text) in enumerate(texts)])
+        # 構建批量請求 (使用預處理後的文本)
+        batch_text = "\n".join([f"[{i}] {text[:500]}" for i, (_, text) in enumerate(preprocessed_texts)])
         
         api_key = os.getenv("DEEPSEEK_API_KEY")
         client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
@@ -204,7 +223,12 @@ class EnhancedTranslationService:
                 
                 # 處理結果並保存到TM
                 for i, (item_id, original) in enumerate(texts):
-                    translated = translations.get(i, original)
+                    translated = translations.get(i, preprocessed_texts[i][1])
+                    
+                    # 術語後處理 - 還原術語
+                    _, marker_map = marker_maps[i]
+                    if marker_map:
+                        translated = self.postprocess_with_terminology(translated, marker_map)
                     
                     # 後處理
                     translated = self.prompt_enhancer.post_process(translated, domain)
@@ -318,7 +342,7 @@ class EnhancedTranslationService:
     
     def get_stats_report(self) -> Dict:
         """獲取統計報告"""
-        total_hits = self.stats["tm_hits"] + self.stats["cache_hits"]
+        total_hits = self.stats["tm_hits"] + self.stats["cache_hits"] + self.stats.get("terminology_hits", 0)
         total_requests = self.stats["api_calls"] + total_hits
         
         hit_rate = (total_hits / max(total_requests, 1)) * 100
@@ -327,18 +351,78 @@ class EnhancedTranslationService:
             "api_calls": self.stats["api_calls"],
             "tm_hits": self.stats["tm_hits"],
             "cache_hits": self.stats["cache_hits"],
+            "terminology_hits": self.stats.get("terminology_hits", 0),
             "total_hits": total_hits,
             "hit_rate_percent": round(hit_rate, 2),
             "tokens_saved": int(self.stats["tokens_saved"]),
             "domain_switches": self.stats["domain_switches"],
-            "current_domain": self.domain
+            "current_domain": self.domain,
+            "use_terminology": self.use_terminology
         }
         
         # 添加TM統計
         if self.tm:
             report["tm_stats"] = self.tm.get_stats()
         
+        # 添加術語表統計
+        if self.terminology_manager:
+            report["terminology_stats"] = self.terminology_manager.get_stats()
+        
         return report
+    
+    def preprocess_with_terminology(self, text: str) -> Tuple[str, Dict[str, str]]:
+        """
+        使用術語表預處理文本
+        
+        Args:
+            text: 原文
+            
+        Returns:
+            (預處理後文本, 標記映射表)
+        """
+        if not self.use_terminology or not self.terminology_manager:
+            return text, {}
+        
+        processed, marker_map = self.terminology_manager.preprocess_text(text, self.domain)
+        
+        if marker_map:
+            self.stats["terminology_hits"] += len(marker_map)
+            logger.debug(f"Terminology preprocessing: {len(marker_map)} terms protected")
+        
+        return processed, marker_map
+    
+    def postprocess_with_terminology(self, text: str, marker_map: Dict[str, str]) -> str:
+        """
+        使用術語表後處理文本
+        
+        Args:
+            text: 翻譯後文本 (含標記)
+            marker_map: 標記映射表
+            
+        Returns:
+            處理後文本
+        """
+        if not self.use_terminology or not self.terminology_manager or not marker_map:
+            return text
+        
+        processed = self.terminology_manager.postprocess_text(text, marker_map, self.domain)
+        return processed
+    
+    def check_terminology_consistency(self, source_text: str, target_text: str) -> List[Dict]:
+        """
+        檢查術語一致性
+        
+        Args:
+            source_text: 原文
+            target_text: 譯文
+            
+        Returns:
+            不一致列表
+        """
+        if not self.use_terminology or not self.terminology_manager:
+            return []
+        
+        return self.terminology_manager.check_consistency(source_text, target_text, self.domain)
 
 
 # 全局服務實例
