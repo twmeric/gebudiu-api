@@ -1,5 +1,7 @@
 # GeBuDiu API - Enhanced v3.0
-# Core dependencies
+# GBD USP: 格式自學習引擎
+
+# Core framework
 flask==3.0.0
 flask-cors==4.0.0
 flask-limiter==3.5.0
@@ -21,5 +23,5 @@ requests==2.31.0
 cachetools==5.3.2
 diskcache==5.6.3
 
-# Fuzzy matching (for terminology)
+# Fuzzy matching for terminology
 rapidfuzz==3.6.1

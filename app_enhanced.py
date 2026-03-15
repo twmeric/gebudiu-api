@@ -30,6 +30,20 @@ try:
     from domain_detector import DomainDetector
     from terminology_manager import TerminologyManager, get_terminology_manager
     from terminology_api import init_terminology_routes
+    # 格式自學習引擎 (GBD USP)
+    from format_fingerprint import get_format_learning_engine, FormatParams
+    from layout_analyzer import DocxLayoutAnalyzer, FormatLearningPipeline
+    FORMAT_LEARNING_AVAILABLE = True
+except ImportError as e:
+    FORMAT_LEARNING_AVAILABLE = False
+    logging.warning(f"Format learning not available: {e}")
+
+try:
+    from enhanced_translation_service import EnhancedTranslationService, TranslationResult
+    from translation_memory import TranslationMemory
+    from domain_detector import DomainDetector
+    from terminology_manager import TerminologyManager, get_terminology_manager
+    from terminology_api import init_terminology_routes
     ENHANCED_MODE = True
 except ImportError as e:
     ENHANCED_MODE = False
@@ -123,6 +137,11 @@ def init_services():
         # 初始化術語表API路由
         init_terminology_routes(app, terminology_manager)
         
+        # 初始化格式自學習引擎 (GBD USP)
+        if FORMAT_LEARNING_AVAILABLE:
+            format_engine = get_format_learning_engine()
+            logger.info("Format Learning Engine initialized (GBD USP)")
+        
     except Exception as e:
         logger.error(f"Failed to initialize enhanced services: {e}")
         logger.info("Falling back to legacy mode")
@@ -194,9 +213,24 @@ def health():
             "translation_memory": True,
             "domain_detection": True,
             "quality_scoring": True,
-            "terminology_management": True
+            "terminology_management": True,
+            "format_learning": FORMAT_LEARNING_AVAILABLE  # GBD USP
         }
         status["stats"] = translation_service.get_stats_report()
+        
+        # 添加格式學習狀態
+        if FORMAT_LEARNING_AVAILABLE:
+            try:
+                format_engine = get_format_learning_engine()
+                format_stats = format_engine.get_learning_stats()
+                status["format_learning"] = {
+                    "status": "active",
+                    "tagline": "每一翻譯，都讓下一個更完美",
+                    "patterns_learned": format_stats.get("total_patterns", 0),
+                    "optimizations_made": format_stats.get("total_optimizations", 0)
+                }
+            except:
+                status["format_learning"] = {"status": "initializing"}
     
     return jsonify(status)
 
@@ -392,6 +426,159 @@ def detect_domain():
     except Exception as e:
         logger.error(f"Domain detection failed: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+# ==================== 格式自學習引擎 API (GBD USP) ====================
+
+@app.route('/format-learning/stats', methods=['GET'])
+def format_learning_stats():
+    """獲取格式學習統計 - 展示 GBD 的 USP"""
+    if not FORMAT_LEARNING_AVAILABLE:
+        return jsonify({
+            "status": "not_available",
+            "message": "Format learning engine not available"
+        }), 503
+    
+    try:
+        engine = get_format_learning_engine()
+        stats = engine.get_learning_stats()
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Failed to get format learning stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/format-learning/analyze', methods=['POST'])
+def format_learning_analyze():
+    """
+    分析原文和譯文的佈局差異
+    這是「越翻譯越聰明」的核心功能
+    """
+    if not FORMAT_LEARNING_AVAILABLE:
+        return jsonify({"error": "Format learning not available"}), 503
+    
+    try:
+        if 'source' not in request.files or 'translated' not in request.files:
+            return jsonify({"error": "需要上傳原文(source)和譯文(translated)文件"}), 400
+        
+        source_file = request.files['source']
+        translated_file = request.files['translated']
+        domain = request.form.get('domain', 'general')
+        
+        # 讀取文件
+        source_bytes = source_file.read()
+        translated_bytes = translated_file.read()
+        
+        if len(source_bytes) == 0 or len(translated_bytes) == 0:
+            return jsonify({"error": "文件為空"}), 400
+        
+        # 獲取當前使用的格式參數（從翻譯服務或默認值）
+        params_used = FormatParams(
+            font_size=float(request.form.get('font_size', 11.0)),
+            line_spacing=float(request.form.get('line_spacing', 1.15)),
+            paragraph_spacing=float(request.form.get('paragraph_spacing', 6.0)),
+            margin_cm=float(request.form.get('margin_cm', 2.5))
+        )
+        
+        # 執行分析流水線
+        engine = get_format_learning_engine()
+        pipeline = FormatLearningPipeline(engine)
+        
+        result = pipeline.process_translation(
+            source_bytes, translated_bytes, domain, params_used
+        )
+        
+        return jsonify({
+            "status": "success",
+            "message": "分析完成，已記錄到學習引擎",
+            "result": result
+        })
+        
+    except Exception as e:
+        logger.error(f"Format learning analysis failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/format-learning/predict', methods=['POST'])
+def format_learning_predict():
+    """
+    預測最佳格式參數
+    基於歷史相似內容的最佳表現
+    """
+    if not FORMAT_LEARNING_AVAILABLE:
+        return jsonify({"error": "Format learning not available"}), 503
+    
+    try:
+        data = request.get_json()
+        
+        # 構建內容指紋
+        from format_fingerprint import ContentFingerprint
+        fingerprint = ContentFingerprint(
+            domain=data.get('domain', 'general'),
+            total_chars=data.get('total_chars', 1000),
+            avg_sentence_length=data.get('avg_sentence_length', 50),
+            paragraph_count=data.get('paragraph_count', 10),
+            table_count=data.get('table_count', 0),
+            image_count=data.get('image_count', 0),
+            structure_complexity=data.get('structure_complexity', 0.3)
+        )
+        
+        engine = get_format_learning_engine()
+        optimal_params = engine.predict_optimal_params(fingerprint)
+        
+        return jsonify({
+            "status": "success",
+            "predicted_params": optimal_params.to_dict(),
+            "fingerprint": fingerprint.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Format prediction failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/format-learning/report', methods=['GET'])
+def format_learning_report():
+    """
+    生成格式學習報告
+    展示「越翻譯越聰明」的累積效果
+    """
+    if not FORMAT_LEARNING_AVAILABLE:
+        return jsonify({"error": "Format learning not available"}), 503
+    
+    try:
+        engine = get_format_learning_engine()
+        stats = engine.get_learning_stats()
+        
+        # 生成用戶友好的報告
+        report = {
+            "title": "GeBuDiu 格式智能學習報告",
+            "tagline": "每一翻譯，都讓下一個更完美",
+            "summary": {
+                "total_documents_analyzed": stats.get("total_optimizations", 0),
+                "learning_patterns_stored": stats.get("total_patterns", 0),
+                "average_satisfaction": f"{stats.get('average_satisfaction', 0) * 100:.0f}%",
+                "status": "學習中" if stats.get("total_patterns", 0) < 10 else "已成熟"
+            },
+            "insights": [],
+            "domain_performance": stats.get("domain_breakdown", [])
+        }
+        
+        # 生成洞察
+        if stats.get("total_patterns", 0) > 0:
+            report["insights"].append(f"已為您累積學習 {stats['total_patterns']} 種文件格式模式")
+            report["insights"].append(f"當前平均格式滿意度: {report['summary']['average_satisfaction']}")
+        
+        if stats.get("domain_breakdown"):
+            best_domain = max(stats["domain_breakdown"], key=lambda x: x.get("avg_score", 0))
+            report["insights"].append(f"最擅長處理: {best_domain.get('domain', 'general')} 領域文件")
+        
+        if stats.get("total_patterns", 0) < 5:
+            report["insights"].append("💡 建議: 多翻譯幾份文件以建立個人化的格式偏好")
+        
+        return jsonify(report)
+        
+    except Exception as e:
+        logger.error(f"Format learning report failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
