@@ -6,8 +6,7 @@ services:
     plan: starter
     
     buildCommand: |
-      echo "Build cache version: 2" && \
-      pip install --upgrade pip setuptools wheel && \
+      pip install --upgrade pip==24.0 setuptools==69.5.1 wheel==0.43.0 &&
       pip install -r requirements-render.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1 wsgi:app
     
@@ -27,7 +26,7 @@ services:
       - key: ENHANCED_MODE
         value: "true"
       - key: BUILD_CACHE_BUST
-        value: "v2-20260315"
+        value: "v3-numpy-fix"
     
     disk:
       name: data-disk
