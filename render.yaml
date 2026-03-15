@@ -1,11 +1,20 @@
-# Render 部署配置 - Starter 計劃優化
+# Render 部署配置 - Starter 計劃 + Translation Memory
 services:
   - type: web
     name: gebudiu-api
     runtime: python
-    plan: starter  # 明確指定 Starter 計劃
-    buildCommand: pip install -r requirements.txt
-    # 關鍵：超長 timeout 600 秒 = 10 分鐘，處理大文件
+    plan: starter  # $7/month, 512MB RAM
+    buildCommand: |
+      pip install -r requirements.txt
+      python -c "
+      try:
+          from sentence_transformers import SentenceTransformer
+          print('Downloading embedding model...')
+          SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+          print('Model downloaded successfully')
+      except Exception as e:
+          print(f'Model download skipped: {e}')
+      "
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --graceful-timeout 600 --keep-alive 60 --workers 1 --threads 1 --max-requests 100 wsgi:app
     envVars:
       - key: PYTHON_VERSION
@@ -18,7 +27,15 @@ services:
         value: "2"
       - key: GUNICORN_TIMEOUT
         value: "600"
-    # 健康檢查
+      - key: TM_DB_PATH
+        value: /data/translation_memory.db
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/.cache
+      - key: ENHANCED_MODE
+        value: "true"
+    disk:
+      name: translation-memory
+      mountPath: /data
+      sizeGB: 1
     healthCheckPath: /health
-    # 自動重啟設置
     autoDeploy: true
