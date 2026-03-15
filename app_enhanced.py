@@ -66,7 +66,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 創建應用
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 
 # CORS配置
 CORS(app, origins="*", supports_credentials=False)
@@ -197,6 +197,29 @@ def should_translate(text):
     return True
 
 # API 路由
+@app.route('/')
+def index():
+    """用戶指南主頁 - 提供 API 文檔"""
+    try:
+        return app.send_static_file('index.html')
+    except:
+        # 如果靜態文件不存在，返回基本信息
+        return jsonify({
+            "service": "GeBuDiu API - 专业 DOCX 文档翻译",
+            "version": "3.0.0",
+            "tagline": "越翻译，格式越精准",
+            "documentation": "/docs",
+            "health": "/health"
+        })
+
+@app.route('/docs')
+def docs():
+    """用戶指南頁面"""
+    try:
+        return app.send_static_file('index.html')
+    except:
+        return jsonify({"error": "Documentation not available"}), 503
+
 @app.route('/health', methods=['GET'])
 def health():
     """健康檢查"""
