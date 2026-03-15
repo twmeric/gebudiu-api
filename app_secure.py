@@ -181,26 +181,38 @@ class TranslationCache:
 cache = TranslationCache()
 
 def validate_file(file_storage):
-    """验证上传文件"""
-    if not file_storage.filename:
+    """验证上传文件 - 增强版"""
+    if not file_storage or not getattr(file_storage, 'filename', None):
         return False, "No file selected", None
     
-    filename = file_storage.filename
+    # 安全处理文件名（移除路径、保留基本名称）
+    filename = os.path.basename(file_storage.filename)
     ext = os.path.splitext(filename)[1].lower()
     
     if ext not in ALLOWED_EXTENSIONS:
         return False, f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}", None
     
-    file_buffer = file_storage.read()
-    file_storage.seek(0)
+    try:
+        file_buffer = file_storage.read()
+        file_storage.seek(0)
+    except Exception as e:
+        logger.error(f"Failed to read file: {e}")
+        return False, "Failed to read uploaded file", None
+    
+    if len(file_buffer) == 0:
+        return False, "File is empty", None
     
     if len(file_buffer) > MAX_FILE_SIZE:
         max_mb = MAX_FILE_SIZE / 1024 / 1024
         return False, f"File too large. Maximum size: {max_mb}MB", None
     
     # 检查ZIP格式 (docx/xlsx都是ZIP)
-    if file_buffer[:4] != b'PK\x03\x04':
-        return False, "Invalid file format", None
+    # 支持多种 ZIP 格式标识: PK\x03\x04 (标准) 或 PK\x05\x06 (空ZIP)
+    header = file_buffer[:4]
+    valid_zip_headers = [b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08']
+    if header not in valid_zip_headers:
+        logger.warning(f"Invalid file header: {header.hex()} for file: {filename}")
+        return False, f"Invalid file format (header: {header.hex()}). Please upload a valid .docx or .xlsx file", None
     
     return True, None, {
         "filename": filename,
