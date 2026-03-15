@@ -8,3 +8,5 @@ python-docx==1.1.0
 openpyxl==3.1.2
 requests==2.31.0
 python-dotenv==1.0.0
+cachetools==5.3.2
+diskcache==5.6.3
