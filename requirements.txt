@@ -12,9 +12,12 @@ python-dotenv==1.0.0
 cachetools==5.3.2
 diskcache==5.6.3
 
-# Translation Memory 依賴 (方案A: 純SQLite版)
-# 注意: 已移除FAISS和sentence-transformers，避免部署問題
-# 模糊匹配將通過方案E (Qdrant外部服務) 實現
+# Translation Memory 依賴
+# 方案A: SQLite精確匹配 (無需額外包)
+# 方案E: Qdrant向量搜索
+qdrant-client==1.13.3
+sentence-transformers==2.3.1
+numpy==1.24.3
 
 # 可選: 用於更高效的字符串匹配
 rapidfuzz==3.6.1

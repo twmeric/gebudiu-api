@@ -17,6 +17,14 @@ from translation_memory import TranslationMemory, get_translation_memory
 from domain_detector import DomainDetector, DomainPromptEnhancer, get_domain_detector
 from terminology_manager import TerminologyManager, get_terminology_manager
 
+# 可選: Qdrant 向量搜索 (方案E)
+try:
+    from qdrant_memory import QdrantTranslationMemory, get_qdrant_translation_memory
+    QDRANT_AVAILABLE = True
+except ImportError:
+    QDRANT_AVAILABLE = False
+    logger.warning("Qdrant not available, using SQLite only")
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -54,22 +62,24 @@ class EnhancedTranslationService:
     
     def __init__(self, domain: str = "general", use_tm: bool = True, 
                  tm_threshold: float = 0.85, auto_detect_domain: bool = True,
-                 use_terminology: bool = True):
+                 use_terminology: bool = True, use_qdrant: bool = True):
         """
         初始化增強版翻譯服務
         
         Args:
             domain: 默認領域
-            use_tm: 是否使用Translation Memory
+            use_tm: 是否使用Translation Memory (SQLite)
             tm_threshold: TM匹配閾值
             auto_detect_domain: 是否自動檢測領域
             use_terminology: 是否使用術語表管理
+            use_qdrant: 是否使用Qdrant向量搜索 (方案E)
         """
         self.domain = domain
         self.use_tm = use_tm
         self.tm_threshold = tm_threshold
         self.auto_detect_domain = auto_detect_domain
         self.use_terminology = use_terminology
+        self.use_qdrant = use_qdrant and QDRANT_AVAILABLE
         
         # 初始化組件
         self.tm = get_translation_memory() if use_tm else None
@@ -77,17 +87,32 @@ class EnhancedTranslationService:
         self.prompt_enhancer = DomainPromptEnhancer()
         self.terminology_manager = get_terminology_manager() if use_terminology else None
         
+        # 初始化 Qdrant TM (方案E)
+        self.qdrant_tm = None
+        if self.use_qdrant and QDRANT_AVAILABLE:
+            try:
+                self.qdrant_tm = get_qdrant_translation_memory()
+                if self.qdrant_tm and self.qdrant_tm.is_available():
+                    logger.info("Qdrant TM enabled (Plan E)")
+                else:
+                    logger.info("Qdrant TM not available, using SQLite only")
+                    self.use_qdrant = False
+            except Exception as e:
+                logger.warning(f"Failed to initialize Qdrant: {e}")
+                self.use_qdrant = False
+        
         # 統計
         self.stats = {
             "api_calls": 0,
             "tm_hits": 0,
+            "qdrant_hits": 0,
             "cache_hits": 0,
             "tokens_saved": 0,
             "domain_switches": 0,
             "terminology_hits": 0
         }
         
-        logger.info(f"EnhancedTranslationService initialized: domain={domain}, use_tm={use_tm}, use_terminology={use_terminology}")
+        logger.info(f"EnhancedTranslationService initialized: domain={domain}, use_tm={use_tm}, use_qdrant={self.use_qdrant}, use_terminology={use_terminology}")
     
     def detect_domain(self, filename: str, content_samples: List[str] = None) -> str:
         """
@@ -147,7 +172,10 @@ class EnhancedTranslationService:
                 )
                 continue
             
-            # 檢查TM
+            # 檢查TM (兩級緩存: SQLite精確匹配 + Qdrant模糊匹配)
+            found_match = False
+            
+            # 1. SQLite 精確匹配
             if self.use_tm and self.tm:
                 tm_results = self.tm.search(text, detected_domain)
                 if tm_results and tm_results[0].similarity >= self.tm_threshold:
@@ -161,9 +189,33 @@ class EnhancedTranslationService:
                     )
                     self.stats["tm_hits"] += 1
                     self.stats["tokens_saved"] += len(text) * 1.5
-                    continue
+                    found_match = True
             
-            to_translate.append((item_id, text))
+            # 2. Qdrant 模糊匹配 (如果SQLite未命中)
+            if not found_match and self.use_qdrant and self.qdrant_tm:
+                try:
+                    qdrant_results = self.qdrant_tm.search(text, detected_domain, limit=1)
+                    if qdrant_results and qdrant_results[0].similarity >= self.tm_threshold:
+                        best_match = qdrant_results[0]
+                        results[item_id] = TranslationResult(
+                            text=best_match.target,
+                            source=text,
+                            is_tm_match=True,
+                            similarity=best_match.similarity,
+                            domain=detected_domain
+                        )
+                        self.stats["qdrant_hits"] += 1
+                        self.stats["tokens_saved"] += len(text) * 1.5
+                        found_match = True
+                        
+                        # 同時保存到SQLite (加速下次查詢)
+                        if self.tm:
+                            self.tm.add(text, best_match.target, detected_domain)
+                except Exception as e:
+                    logger.debug(f"Qdrant search failed: {e}")
+            
+            if not found_match:
+                to_translate.append((item_id, text))
         
         # 3. API翻譯剩餘文本
         if to_translate:
@@ -243,9 +295,18 @@ class EnhancedTranslationService:
                         domain=domain
                     )
                     
-                    # 保存到TM
-                    if self.use_tm and self.tm and translated != original:
-                        self.tm.add(original, translated, domain)
+                    # 保存到TM (SQLite + Qdrant)
+                    if translated != original:
+                        # SQLite (精確匹配)
+                        if self.use_tm and self.tm:
+                            self.tm.add(original, translated, domain)
+                        
+                        # Qdrant (模糊匹配)
+                        if self.use_qdrant and self.qdrant_tm:
+                            try:
+                                self.qdrant_tm.add(original, translated, domain)
+                            except Exception as e:
+                                logger.debug(f"Failed to save to Qdrant: {e}")
                 
                 self.stats["api_calls"] += 1
                 break
@@ -347,9 +408,15 @@ class EnhancedTranslationService:
         
         hit_rate = (total_hits / max(total_requests, 1)) * 100
         
+        total_hits = self.stats["tm_hits"] + self.stats.get("qdrant_hits", 0) + self.stats["cache_hits"] + self.stats.get("terminology_hits", 0)
+        total_requests = self.stats["api_calls"] + total_hits
+        
+        hit_rate = (total_hits / max(total_requests, 1)) * 100
+        
         report = {
             "api_calls": self.stats["api_calls"],
             "tm_hits": self.stats["tm_hits"],
+            "qdrant_hits": self.stats.get("qdrant_hits", 0),
             "cache_hits": self.stats["cache_hits"],
             "terminology_hits": self.stats.get("terminology_hits", 0),
             "total_hits": total_hits,
@@ -357,12 +424,20 @@ class EnhancedTranslationService:
             "tokens_saved": int(self.stats["tokens_saved"]),
             "domain_switches": self.stats["domain_switches"],
             "current_domain": self.domain,
-            "use_terminology": self.use_terminology
+            "use_terminology": self.use_terminology,
+            "use_qdrant": self.use_qdrant
         }
         
-        # 添加TM統計
+        # 添加TM統計 (SQLite)
         if self.tm:
             report["tm_stats"] = self.tm.get_stats()
+        
+        # 添加Qdrant統計
+        if self.use_qdrant and self.qdrant_tm:
+            try:
+                report["qdrant_stats"] = self.qdrant_tm.get_stats()
+            except Exception as e:
+                logger.debug(f"Failed to get Qdrant stats: {e}")
         
         # 添加術語表統計
         if self.terminology_manager:

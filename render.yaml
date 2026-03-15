@@ -1,5 +1,6 @@
-# Render 部署配置 - 方案A: 純SQLite版
-# 已移除FAISS依賴，確保100%部署成功率
+# Render 部署配置 - 方案A + 方案E
+# 方案A: SQLite精確匹配 (本地)
+# 方案E: Qdrant向量搜索 (外部服務)
 
 services:
   - type: web
@@ -29,7 +30,13 @@ services:
       - key: ENHANCED_MODE
         value: "true"
       - key: DEPLOYMENT_MODE
-        value: "sqlite_exact"  # 標識當前部署模式
+        value: "sqlite_qdrant"  # 方案A+E
+      
+      # 方案E: Qdrant配置 (需要在Render Dashboard中設置)
+      - key: QDRANT_URL
+        sync: false  # 從Dashboard設置
+      - key: QDRANT_API_KEY
+        sync: false  # 從Dashboard設置
     
     # 持久化存儲
     disk:
