@@ -11,11 +11,10 @@ python-dotenv==1.0.0
 cachetools==5.3.2
 diskcache==5.6.3
 
-# Translation Memory 依賴
-faiss-cpu==1.7.4
+# Translation Memory 依賴 (更新版本支持 Python 3.11)
+faiss-cpu==1.13.2
 sentence-transformers==2.3.1
 numpy==1.24.3
-torch==2.1.0
 
 # 可選: 用於更高效的相似度計算
 rapidfuzz==3.6.1
