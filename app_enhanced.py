@@ -182,12 +182,20 @@ def validate_file(file_storage):
         max_mb = MAX_FILE_SIZE / 1024 / 1024
         return False, f"File too large. Maximum size: {max_mb}MB", None
     
-    # ZIP格式檢查
+    # 文件格式檢查
     header = file_buffer[:4]
+    
+    # 檢測是否為舊格式 .doc (OLE Compound File)
+    old_doc_header = b'\xd0\xcf\x11\xe0'  # .doc 文件頭
+    if header == old_doc_header:
+        logger.warning(f"Old .doc format detected: {header.hex()}")
+        return False, "檢測到舊格式 .doc 文件，請將文件另存為 .docx 格式後重試", None
+    
+    # ZIP格式檢查（.docx 和 .xlsx 都是 ZIP）
     valid_zip_headers = [b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08']
     if header not in valid_zip_headers:
         logger.warning(f"Invalid file header: {header.hex()}")
-        return False, f"Invalid file format. Please upload a valid .docx or .xlsx file", None
+        return False, f"文件格式錯誤（文件頭: {header.hex()}），請上傳有效的 .docx 或 .xlsx 文件", None
     
     return True, None, {
         "filename": filename,
