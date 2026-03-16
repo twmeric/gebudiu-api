@@ -184,12 +184,40 @@ def validate_file(file_storage):
     
     # 文件格式檢查
     header = file_buffer[:4]
+    ole_header = b'\xd0\xcf\x11\xe0'  # OLE格式文件頭（.doc 和 .xls）
     
-    # 檢測是否為舊格式 .doc (OLE Compound File)
-    old_doc_header = b'\xd0\xcf\x11\xe0'  # .doc 文件頭
-    if header == old_doc_header:
-        logger.warning(f"Old .doc format detected: {header.hex()}")
-        return False, "檢測到舊格式 .doc 文件，請將文件另存為 .docx 格式後重試", None
+    # 檢測是否為舊格式 (.doc 或 .xls)
+    if header == ole_header:
+        from legacy_format_handler import LegacyFormatHandler, get_conversion_guide
+        
+        # 判斷是 .doc 還是 .xls
+        is_xls = LegacyFormatHandler.is_old_xls(file_buffer)
+        detected_ext = '.xls' if is_xls else '.doc'
+        
+        logger.info(f"Detected legacy format: {detected_ext}, attempting to process...")
+        
+        # 嘗試處理舊格式
+        try:
+            from legacy_format_handler import LegacyFormatHandler
+            text_content = LegacyFormatHandler.convert_to_docx_text(file_buffer, detected_ext)
+            
+            # 如果成功提取文本，返回特殊標記
+            logger.info(f"Successfully extracted text from legacy {detected_ext}")
+            return True, None, {
+                "filename": filename,
+                "extension": detected_ext,
+                "size": len(file_buffer),
+                "buffer": file_buffer,
+                "is_legacy": True,
+                "legacy_type": detected_ext,
+                "extracted_text": text_content
+            }
+        
+        except Exception as e:
+            # 無法處理，提供轉換指南
+            logger.warning(f"Cannot process legacy format {detected_ext}: {e}")
+            guide = get_conversion_guide(detected_ext)
+            return False, guide, None
     
     # ZIP格式檢查（.docx 和 .xlsx 都是 ZIP）
     valid_zip_headers = [b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08']
