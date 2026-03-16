@@ -118,34 +118,58 @@ class FormatLearningEngine:
         if db_path is None:
             db_path = os.getenv("FORMAT_LEARNING_DB_PATH", "/data/format_learning.db")
         
-        self.db_path = db_path
-        
-        # 測試是否能寫入 /data，如果不能則回退到本地
-        db_dir = os.path.dirname(self.db_path)
-        if db_dir:
-            try:
-                # 測試寫入權限
-                test_file = os.path.join(db_dir, ".write_test")
-                with open(test_file, 'w') as f:
-                    f.write("test")
-                os.remove(test_file)
-                logger.info(f"Directory {db_dir} is writable")
-            except Exception as e:
-                logger.warning(f"Cannot write to {db_dir}: {e}, falling back to local directory")
-                # 回退到當前目錄
-                self.db_path = os.path.basename(self.db_path)
-        
-        # 再次確保目錄存在
-        db_dir = os.path.dirname(self.db_path)
-        if db_dir and not os.path.exists(db_dir):
-            try:
-                os.makedirs(db_dir, exist_ok=True)
-            except Exception as e:
-                logger.warning(f"Failed to create directory {db_dir}: {e}")
-                self.db_path = os.path.basename(self.db_path)
-        
+        self.db_path = self._find_writable_path(db_path)
         self._init_db()
         logger.info(f"FormatLearningEngine initialized: {self.db_path}")
+    
+    def _find_writable_path(self, preferred_path: str) -> str:
+        """找到可寫入的路徑，按優先順序嘗試"""
+        import time
+        
+        candidates = [
+            preferred_path,                                    # 首選：/data
+            "/tmp/format_learning.db",                          # 備選1：/tmp
+            os.path.expanduser("~/format_learning.db"),        # 備選2：用戶目錄
+            "./format_learning.db",                             # 備選3：當前目錄
+        ]
+        
+        # 對於 /data，嘗試多次（Render 磁盤掛載可能有延遲）
+        for attempt in range(3):
+            for path in candidates:
+                if self._test_writable(path):
+                    if path != preferred_path:
+                        logger.warning(f"Using fallback path: {path} (preferred {preferred_path} not available)")
+                    else:
+                        logger.info(f"Using preferred path: {path}")
+                    return path
+            
+            if attempt < 2:
+                logger.warning(f"No writable path found, retrying in 2 seconds... (attempt {attempt + 1}/3)")
+                time.sleep(2)
+        
+        # 最終回退
+        logger.error("No writable path found after retries, using current directory")
+        return "./format_learning.db"
+    
+    def _test_writable(self, path: str) -> bool:
+        """測試路徑是否可寫入"""
+        try:
+            dir_path = os.path.dirname(path) or "."
+            
+            # 創建目錄（如果不存在）
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+            
+            # 測試寫入
+            test_file = os.path.join(dir_path, ".write_test")
+            with open(test_file, 'w') as f:
+                f.write("1")
+            os.remove(test_file)
+            
+            return True
+        except Exception as e:
+            logger.debug(f"Path {path} not writable: {e}")
+            return False
     
     def _init_db(self):
         """初始化數據庫"""
