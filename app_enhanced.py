@@ -154,8 +154,19 @@ def validate_file(file_storage):
     filename = os.path.basename(file_storage.filename)
     ext = os.path.splitext(filename)[1].lower()
     
-    if ext not in ALLOWED_EXTENSIONS:
-        return False, f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}", None
+    # 詳細日誌用於調試
+    logger.info(f"Validating file: {filename}, extension: {ext}")
+    
+    # 支持更多變體（微信/瀏覽器可能修改文件名）
+    valid_extensions = {'.docx', '.xlsx', '.doc', '.xls'}
+    
+    if ext not in valid_extensions:
+        logger.warning(f"Invalid file extension: {ext} for file {filename}")
+        return False, f"Invalid file type: {ext}. Allowed: .docx, .xlsx", None
+    
+    # 如果是舊格式 .doc 或 .xls，給出明確提示
+    if ext in ['.doc', '.xls']:
+        return False, f"舊格式 {ext} 不支持，請轉換為 {ext}x 格式後重試", None
     
     try:
         file_buffer = file_storage.read()
