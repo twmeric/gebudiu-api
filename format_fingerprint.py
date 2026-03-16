@@ -114,21 +114,35 @@ class FormatLearningEngine:
     """格式自學習引擎 - GBD 核心 USP"""
     
     def __init__(self, db_path: str = None):
-        # 優先從環境變量獲取路徑，默認使用 /data
+        # 優先從環境變量獲取路徑
         if db_path is None:
             db_path = os.getenv("FORMAT_LEARNING_DB_PATH", "/data/format_learning.db")
         
         self.db_path = db_path
         
-        # 確保目錄存在
+        # 測試是否能寫入 /data，如果不能則回退到本地
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            try:
+                # 測試寫入權限
+                test_file = os.path.join(db_dir, ".write_test")
+                with open(test_file, 'w') as f:
+                    f.write("test")
+                os.remove(test_file)
+                logger.info(f"Directory {db_dir} is writable")
+            except Exception as e:
+                logger.warning(f"Cannot write to {db_dir}: {e}, falling back to local directory")
+                # 回退到當前目錄
+                self.db_path = os.path.basename(self.db_path)
+        
+        # 再次確保目錄存在
         db_dir = os.path.dirname(self.db_path)
         if db_dir and not os.path.exists(db_dir):
             try:
                 os.makedirs(db_dir, exist_ok=True)
             except Exception as e:
-                logger.warning(f"Failed to create db directory {db_dir}: {e}")
-                # 回退到當前目錄
-                self.db_path = "format_learning.db"
+                logger.warning(f"Failed to create directory {db_dir}: {e}")
+                self.db_path = os.path.basename(self.db_path)
         
         self._init_db()
         logger.info(f"FormatLearningEngine initialized: {self.db_path}")
